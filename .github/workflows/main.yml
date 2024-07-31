@@ -21,11 +21,11 @@ jobs:
           cat >~/.ssh/id_ed25519.pub <<EOF
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKCjMgH4feKUPjyx3ChLwu00bEKsUxAs8Lw7Y3Fm2Riz 142536845+brainhoard-github@users.noreply.github.com
           EOF
+          ssh -i /.ssh/id_ed25519 git@github.com
       - uses: actions/checkout@v4
         with:
           repository: distro-core/distro-manifest
           ref: main
-          ssh-key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKCjMgH4feKUPjyx3ChLwu00bEKsUxAs8Lw7Y3Fm2Riz 142536845+brainhoard-github@users.noreply.github.com'
       - shell: bash
         run: |
           ls -alR
