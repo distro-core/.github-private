@@ -9,7 +9,7 @@ on:
 
 jobs:
   sync-mirrors:
-    runs-on: ubuntu-latest
+    runs-on: [ self-hosted, Linux, X64 ]
     steps:
       - name: install ssh key
         shell: bash
@@ -30,12 +30,43 @@ jobs:
       - name: install repo tool
         shell: bash
         run: |
+          PATH="${HOME}/.bin:${PATH}"
           mkdir -p ~/.bin
           echo "path: ${PATH}"
           PATH="${HOME}/.bin:${PATH}"
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
           chmod a+rx ~/.bin/repo
           repo || true
+      - name: install host dependency
+        shell: bash
+        run: |
+          source /etc/os-release
+          case ${ID} in
+          almalinux*)
+            echo sudo dnf install -y epel-release
+            echo sudo yum install -y dnf-plugins-core
+            echo sudo dnf config-manager --set-enabled crb
+            echo sudo dnf makecache
+            echo sudo dnf upgrade -y
+            echo sudo dnf install -y gawk make wget tar bzip2 gzip python3 unzip perl patch \
+              diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
+              ccache socat perl-Data-Dumper perl-Text-ParseWords perl-Thread-Queue \
+              python3-pip python3-GitPython python3-jinja2 python3-pexpect xz which \
+              rpcgen zstd lz4 cpio glibc-langpack-en libacl git-lfs hostname
+            ;;
+          debian* | ubuntu* )
+            sudo apt update -y
+            sudo apt upgrade -y
+            sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
+              chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
+              iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
+              file locales libacl1 git-lfs make libxml2-utils
+            sudo locale-gen en_US.UTF-8
+            ;;
+          * )
+            exit 1
+            ;;
+          esac
       - name: checkout self
         uses: actions/checkout@v4
         with:
@@ -45,27 +76,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: distro-core/distro-manifest
-          ref: main
           path: layers/distro-manifest
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: install host dependency
+      - name: repo init/sync
         shell: bash
         run: |
           {
-            sudo apt update -y
-            sudo apt upgrade -y
-            sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
-              chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
-              iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
-              file locales libacl1 git-lfs make libxml2-utils
-            sudo locale-gen en_US.UTF-8
+            PATH="${HOME}/.bin:${PATH}"
+            repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml -\-no-clone-bundle -\-no-repo-verify
+            repo sync
           } >/dev/null 2>&1
-      # - name: repo init/sync
-      #   shell: bash
-      #   run: |
-      #     PATH="${HOME}/.bin:${PATH}"
-      #     repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml -\-no-clone-bundle -\-no-repo-verify
-      #     repo sync
       # - name: scripts/images-build
       #   shell: bash
       #   run: |
