@@ -1,0 +1,28 @@
+name: Sync mirrors
+on:
+  push:
+    branches:
+      - main
+jobs:
+  sync-mirrors:
+    runs-on: ubuntu-latest
+    steps:
+      - shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          chmod 0700 ~/.ssh
+          cat >~/.ssh/id_ed25519 <<EOF
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          chmod 0600
+          cat >~/.ssh/id_ed25519.pub <<EOF
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKCjMgH4feKUPjyx3ChLwu00bEKsUxAs8Lw7Y3Fm2Riz 142536845+brainhoard-github@users.noreply.github.com
+          EOF
+      - uses: actions/checkout@v4
+        with:
+          repository: distro-core/distro-manifest
+          ref: main
+          ssh-key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKCjMgH4feKUPjyx3ChLwu00bEKsUxAs8Lw7Y3Fm2Riz 142536845+brainhoard-github@users.noreply.github.com'
+      - shell: bash
+        run: |
+          ls -alR
