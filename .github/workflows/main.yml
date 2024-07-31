@@ -50,10 +50,12 @@ jobs:
       - name: repo init
         shell: bash
         run: |
+          PATH="${HOME}/.bin:${PATH}"
           repo init -u layers/distro-manifest -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
       - name: repo sync
         shell: bash
         run: |
+          PATH="${HOME}/.bin:${PATH}"
           repo sync
       - name: directory layout
         shell: bash
