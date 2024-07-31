@@ -47,15 +47,11 @@ jobs:
           ref: main
           path: layers/distro-manifest
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: repo init
+      - name: repo init/sync
         shell: bash
         run: |
           PATH="${HOME}/.bin:${PATH}"
-          repo init -u layers/distro-manifest -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
-      - name: repo sync
-        shell: bash
-        run: |
-          PATH="${HOME}/.bin:${PATH}"
+          repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml -\-no-clone-bundle -\-no-repo-verify
           repo sync
       - name: directory layout
         shell: bash
