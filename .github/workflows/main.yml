@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-  # schedule:
-  #   - cron: '30 5,17 * * *'
+  schedule:
+    - cron: '0 5,17 * * *'
 
 jobs:
   sync-mirrors:
