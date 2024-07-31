@@ -9,7 +9,7 @@ on:
 
 jobs:
   sync-mirrors:
-    runs-on: [ self-hosted, Linux, X64 ]
+    runs-on: self-hosted
     steps:
       - name: install ssh key
         shell: bash
