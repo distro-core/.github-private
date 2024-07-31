@@ -112,9 +112,10 @@ jobs:
       - name: commit timestamp
         shell: bash
         run: |
-          echo $(date -Isec) >timestamp
-          git add .
-          git commit -m "Update timestamp"
+          timestamp=$(date -Isec)
+          echo $timestamp >.timestamp
+          git add .timestamp
+          git commit -m "Update .timestamp $timestamp"
           git push
 
       # - name: install repo tool
