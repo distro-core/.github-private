@@ -27,65 +27,134 @@ jobs:
           ${{ secrets.SSH_PUBLIC_KEY }}
           EOF
           ssh git@github.com || true
-      - name: install repo tool
+      # - name: install repo tool
+      #   shell: bash
+      #   run: |
+      #     PATH="${HOME}/.bin:${PATH}"
+      #     mkdir -p ~/.bin
+      #     echo "path: ${PATH}"
+      #     PATH="${HOME}/.bin:${PATH}"
+      #     curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
+      #     chmod a+rx ~/.bin/repo
+      #     repo || true
+      # - name: install host dependency
+      #   shell: bash
+      #   run: |
+      #     source /etc/os-release
+      #     case ${ID} in
+      #     almalinux*)
+      #       echo sudo dnf install -y epel-release
+      #       echo sudo yum install -y dnf-plugins-core
+      #       echo sudo dnf config-manager --set-enabled crb
+      #       echo sudo dnf makecache
+      #       echo sudo dnf upgrade -y
+      #       echo sudo dnf install -y gawk make wget tar bzip2 gzip python3 unzip perl patch \
+      #         diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
+      #         ccache socat perl-Data-Dumper perl-Text-ParseWords perl-Thread-Queue \
+      #         python3-pip python3-GitPython python3-jinja2 python3-pexpect xz which \
+      #         rpcgen zstd lz4 cpio glibc-langpack-en libacl git-lfs hostname
+      #       ;;
+      #     debian* | ubuntu* )
+      #       sudo apt update -y
+      #       sudo apt upgrade -y
+      #       sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
+      #         chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
+      #         iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
+      #         file locales libacl1 git-lfs make libxml2-utils
+      #       sudo locale-gen en_US.UTF-8
+      #       ;;
+      #     * )
+      #       exit 1
+      #       ;;
+      #     esac
+      # - name: checkout self
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: ${{ github.repository }}
+      #     ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      # - name: checkout manifest
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: distro-core/distro-manifest
+      #     path: layers/distro-manifest
+      #     ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      # - name: repo init/sync
+      #   shell: bash
+      #   run: |
+      #     {
+      #       PATH="${HOME}/.bin:${PATH}"
+      #       repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml -\-no-clone-bundle -\-no-repo-verify
+      #       repo sync
+      #     } >/dev/null 2>&1
+      - name: sync-mirror
         shell: bash
         run: |
-          PATH="${HOME}/.bin:${PATH}"
-          mkdir -p ~/.bin
-          echo "path: ${PATH}"
-          PATH="${HOME}/.bin:${PATH}"
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
-          chmod a+rx ~/.bin/repo
-          repo || true
-      - name: install host dependency
-        shell: bash
-        run: |
-          source /etc/os-release
-          case ${ID} in
-          almalinux*)
-            echo sudo dnf install -y epel-release
-            echo sudo yum install -y dnf-plugins-core
-            echo sudo dnf config-manager --set-enabled crb
-            echo sudo dnf makecache
-            echo sudo dnf upgrade -y
-            echo sudo dnf install -y gawk make wget tar bzip2 gzip python3 unzip perl patch \
-              diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
-              ccache socat perl-Data-Dumper perl-Text-ParseWords perl-Thread-Queue \
-              python3-pip python3-GitPython python3-jinja2 python3-pexpect xz which \
-              rpcgen zstd lz4 cpio glibc-langpack-en libacl git-lfs hostname
-            ;;
-          debian* | ubuntu* )
-            sudo apt update -y
-            sudo apt upgrade -y
-            sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
-              chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
-              iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
-              file locales libacl1 git-lfs make libxml2-utils
-            sudo locale-gen en_US.UTF-8
-            ;;
-          * )
-            exit 1
-            ;;
-          esac
-      - name: checkout self
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: checkout manifest
-        uses: actions/checkout@v4
-        with:
-          repository: distro-core/distro-manifest
-          path: layers/distro-manifest
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: repo init/sync
-        shell: bash
-        run: |
-          {
-            PATH="${HOME}/.bin:${PATH}"
-            repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml -\-no-clone-bundle -\-no-repo-verify
-            repo sync
-          } >/dev/null 2>&1
+          mirror_uri="ssh://git@github.com/distro-core-curated-mirrors"
+          repo_list=(
+            # mirror                    # mirror src_uri
+            "bitbake"                   "https://git.openembedded.org/bitbake"
+            "boot2qt-manifest"          "https://code.qt.io/yocto/boot2qt-manifest.git"
+            "faux"                      "https://src.libcode.org/pkun/faux.git"
+            "klish"                     "https://src.libcode.org/pkun/klish.git"
+            "lmp-manifest"              "https://github.com/foundriesio/lmp-manifest"
+            "lmp-tools"                 "https://github.com/foundriesio/lmp-tools.git"
+            "meta-amd"                  "https://git.yoctoproject.org/meta-amd"
+            "meta-arm"                  "https://git.yoctoproject.org/meta-arm"
+            "meta-balena"               "https://github.com/balena-os/meta-balena.git"
+            "meta-clang"                "https://github.com/kraj/meta-clang.git"
+            "meta-cloud-services"       "https://git.yoctoproject.org/meta-cloud-services"
+            "meta-dpdk"                 "https://git.yoctoproject.org/meta-dpdk"
+            "meta-freescale-3rdparty"   "https://github.com/Freescale/meta-freescale-3rdparty.git"
+            "meta-freescale"            "https://github.com/Freescale/meta-freescale.git"
+            "meta-intel"                "https://git.yoctoproject.org/meta-intel"
+            "meta-lmp"                  "https://github.com/foundriesio/meta-lmp.git"
+            "meta-lts-mixins"           "https://git.yoctoproject.org/meta-lts-mixins"
+            "meta-mingw"                "https://git.yoctoproject.org/git/meta-mingw"
+            "meta-openembedded-contrib" "https://git.openembedded.org/meta-openembedded-contrib"
+            "meta-openembedded"         "https://git.openembedded.org/meta-openembedded"
+            "meta-openwrt"              "https://github.com/kraj/meta-openwrt.git"
+            "meta-qt5"                  "https://github.com/meta-qt5/meta-qt5.git"
+            "meta-qt6"                  "https://code.qt.io/yocto/meta-qt6.git"
+            "meta-raspberrypi"          "https://github.com/agherzan/meta-raspberrypi.git"
+            "meta-rauc"                 "https://github.com/rauc/meta-rauc.git"
+            "meta-rust"                 "https://github.com/meta-rust/meta-rust.git"
+            "meta-secure-core"          "https://github.com/Wind-River/meta-secure-core.git"
+            "meta-security"             "https://git.yoctoproject.org/meta-security"
+            "meta-selinux"              "https://git.yoctoproject.org/meta-selinux"
+            "meta-st-stm32mp"           "https://github.com/STMicroelectronics/meta-st-stm32mp.git"
+            "meta-sunxi"                "https://github.com/linux-sunxi/meta-sunxi.git"
+            "meta-tegra"                "https://github.com/OE4T/meta-tegra.git"
+            "meta-tensorflow"           "https://git.yoctoproject.org/meta-tensorflow"
+            "meta-ti"                   "https://git.yoctoproject.org/meta-ti"
+            "meta-updater"              "https://github.com/uptane/meta-updater.git"
+            "meta-virtualization"       "https://git.yoctoproject.org/meta-virtualization"
+            "meta-xilinx-tools"         "https://github.com/foundriesio/meta-xilinx-tools.git"
+            "meta-xilinx"               "https://github.com/foundriesio/meta-xilinx.git"
+            "meta-yocto"                "https://git.yoctoproject.org/meta-yocto"
+            "mlvpn"                     "https://github.com/zehome/MLVPN.git"
+            "openembedded-core"         "https://git.openembedded.org/openembedded-core"
+            "poky-contrib"              "https://git.yoctoproject.org/poky-contrib"
+            "poky"                      "https://git.yoctoproject.org/poky"
+            "yocto-meta-kde"            "https://github.com/KDE/yocto-meta-kde.git"
+            "yocto-meta-kf5"            "https://github.com/KDE/yocto-meta-kf5.git"
+            "yocto-meta-kf6"            "https://github.com/KDE/yocto-meta-kf6.git"
+            "VeraCrypt"                 "https://github.com/veracrypt/VeraCrypt.git"
+            "VeraCrypt-DCS"             "https://github.com/veracrypt/VeraCrypt-DCS.git"
+          )
+          for i in $(seq 0 2 $((${#repo_list[@]}-2))); do
+            echo "${repo_list[ $((i+0)) ]}:"
+            rm -fr tmp
+            if git clone --quiet --mirror ${repo_list[ $((i+1)) ]} tmp; then
+              cd tmp
+              git for-each-ref --format "delete %(refname)" refs/pull | git update-ref --stdin
+              git for-each-ref --format "delete %(refname)" refs/meta | git update-ref --stdin
+              git for-each-ref --format "delete %(refname)" refs/merge-requests | git update-ref --stdin
+              git push --porcelain --mirror $mirror_uri/${repo_list[ $((i+0)) ]}.git | grep -v "\[up to date\]"
+              cd ..
+            fi
+          done
+          rm -fr tmp
+
       # - name: scripts/images-build
       #   shell: bash
       #   run: |
