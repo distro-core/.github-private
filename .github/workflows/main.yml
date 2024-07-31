@@ -26,7 +26,7 @@ jobs:
         with:
           repository: distro-core/distro-manifest
           ref: main
-          ssh-key: ${{ secrets.SSH_PUBLIC_KEY }}
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - shell: bash
         run: |
           ls -alR
