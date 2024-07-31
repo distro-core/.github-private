@@ -53,7 +53,7 @@ jobs:
           PATH="${HOME}/.bin:${PATH}"
           repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml -\-no-clone-bundle -\-no-repo-verify
           repo sync
-      - name: directory layout
+      - name: scripts/images-build
         shell: bash
         run: |
-          ls -alR
+          scripts/images-build --target="--runall=fetch distro-core-image distro-core-sdk-image"
