@@ -1,13 +1,16 @@
 name: Sync mirrors
 on:
+  schedule:
+    - cron: '30 5,17 * * *'
   push:
-    branches:
+    branches-ignore:
       - main
 jobs:
   sync-mirrors:
     runs-on: ubuntu-latest
     steps:
-      - shell: bash
+      - name: install ssh key
+        shell: bash
         run: |
           mkdir -p ~/.ssh
           chmod 0700 ~/.ssh
@@ -22,11 +25,25 @@ jobs:
           ${{ secrets.SSH_PUBLIC_KEY }}
           EOF
           ssh git@github.com || true
-      - uses: actions/checkout@v4
+      - name: install repo tool
+        shell: bash
+        run: |
+          mkdir -p ~/.bin
+          echo "path: ${PATH}"
+          PATH="${HOME}/.bin:${PATH}"
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
+          chmod a+rx ~/.bin/repo
+          repo || true
+      - name: checkout self
+        uses: actions/checkout@v4
         with:
-          repository: distro-core/distro-manifest
+          repository: ${{ github.repository }}
+      - name: checkout manifests
+        uses: actions/checkout@v4
+        with:
+          repository: ssh://github.com:distro-core/distro-manifest
           ref: main
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          path: layers/distro-manifest
       - shell: bash
         run: |
           ls -alR
