@@ -60,7 +60,6 @@ jobs:
       #       exit 1
       #       ;;
       #     esac
-
       - name: install repo tool
         shell: bash
         run: |
@@ -71,14 +70,19 @@ jobs:
           curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
           chmod a+rx ${HOME}/.local/bin/repo
           repo || true
-      - name: repo init/sync
+      - name: repo init and sync
         shell: bash
         run: |
           PATH="${HOME}/.local/bin:${PATH}"
           repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
           repo sync
-      # - name: scripts/images-build
+      - name: run scripts/images-build fetch
+        shell: bash
+        run: |
+          PATH="${HOME}/.local/bin:${PATH}"
+          scripts/images-build --target="--runall=fetch distro-core-image distro-core-sdk-image"
+      # - name: run scripts/images-build build
       #   shell: bash
       #   run: |
       #     PATH="${HOME}/.local/bin:${PATH}"
-      #     scripts/images-build --target="--runall=fetch distro-core-image distro-core-sdk-image"
+      #     scripts/images-build --target="distro-core-image distro-core-sdk-image"
