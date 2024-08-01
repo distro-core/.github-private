@@ -92,12 +92,12 @@ jobs:
           [ -n "$MANIFEST_NAME" ] || ( echo "Required variable unset MANIFEST_NAME" ; exit 1 )
           export PATH="${HOME}/.local/bin:${PATH}"
           repo init -u $MANIFEST_URI -b $MANIFEST_BRANCH -m $MANIFEST_NAME --no-clone-bundle --no-repo-verify
-          mkdir -p .repo/local_manifests
-          cat >.repo/local_manifests/local_manifest.xml <<EOF
-          <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
-          <manifest>
-          </manifest>
-          EOF
+          # mkdir -p .repo/local_manifests
+          # cat >.repo/local_manifests/local_manifest.xml <<EOF
+          # <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
+          # <manifest>
+          # </manifest>
+          # EOF
           repo sync
       - name: scripts/images-build fetch
         run: |
