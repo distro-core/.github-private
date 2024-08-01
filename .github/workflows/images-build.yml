@@ -27,10 +27,10 @@ jobs:
     steps:
       - name: check environment
         run: |
-          echo "::add-mask::$SSH_PUBLIC_KEY"
-          echo "::add-mask::$SSH_PRIVATE_KEY"
-          [ -n "$SSH_PUBLIC_KEY" ] || ( echo "Required variable unset SSH_PUBLIC_KEY" ; exit 1 )
-          [ -n "$SSH_PRIVATE_KEY" ] || ( echo "Required variable unset SSH_PRIVATE_KEY" ; exit 1 )
+          echo "::add-mask::${{ env.SSH_PUBLIC_KEY }}"
+          echo "::add-mask::${{ env.SSH_PRIVATE_KEY }}"
+          [ -n "${{ env.SSH_PUBLIC_KEY }}" ] || ( echo "Required variable unset SSH_PUBLIC_KEY" ; exit 1 )
+          [ -n "${{ env.SSH_PRIVATE_KEY }}" ] || ( echo "Required variable unset SSH_PRIVATE_KEY" ; exit 1 )
           [ -n "$MANIFEST_URI" ] || ( echo "Required variable unset MANIFEST_URI" ; exit 1 )
           [ -n "$MANIFEST_BRANCH" ] || ( echo "Required variable unset MANIFEST_BRANCH" ; exit 1 )
           [ -n "$MANIFEST_NAME" ] || ( echo "Required variable unset MANIFEST_NAME" ; exit 1 )
@@ -45,10 +45,10 @@ jobs:
           touch ${HOME}/.ssh/config
           chmod 0644 ${HOME}/.ssh/config
           cat >${HOME}/.ssh/id_ed25519.pub <<EOF
-          $SSH_PUBLIC_KEY
+          ${{ env.SSH_PUBLIC_KEY }}
           EOF
           cat >${HOME}/.ssh/id_ed25519 <<EOF
-          $SSH_PRIVATE_KEY
+          ${{ env.SSH_PRIVATE_KEY }}
           EOF
           if ! grep -q -e '.ssh/id_ed25519$' ${HOME}/.ssh/config; then
             printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
