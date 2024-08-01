@@ -24,13 +24,16 @@ jobs:
           chmod 0600 ${HOME}/.ssh/id_ed25519
           touch ${HOME}/.ssh/id_ed25519.pub
           chmod 0644 ${HOME}/.ssh/id_ed25519.pub
+          touch ${HOME}/.ssh/config
+          chmod 0644 ${HOME}/.ssh/config
           cat >${HOME}/.ssh/id_ed25519 <<EOF
           ${{ secrets.SSH_PRIVATE_KEY }}
           EOF
           cat >${HOME}/.ssh/id_ed25519.pub <<EOF
           ${{ secrets.SSH_PUBLIC_KEY }}
           EOF
-          ssh -i ${HOME}/.ssh/id_ed25519 git@github.com || true
+          printf 'Host *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n' ${HOME}/.ssh/id_ed25519 "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
+          ssh git@github.com || true
       - name: perform mirrors sync
         shell: bash
         run: |
