@@ -1,4 +1,4 @@
-name: Distro Core Curated Mirrors
+name: Scheduled Update Mirrors
 
 # An action to perform a sync of the curated mirrors utilized
 # by distro-core. Requires organization secrets SSH_PUBLIC_KEY
@@ -10,7 +10,7 @@ name: Distro Core Curated Mirrors
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 17 * * *'
+    - cron: '15 0,6,12,18 * * *'
 
 env:
   MIRROR_URI: ssh://git@github.com/distro-core-curated-mirrors
