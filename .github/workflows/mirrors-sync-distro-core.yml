@@ -1,0 +1,111 @@
+name: Update Distro Core Curated Mirrors
+
+# Utilize an action to perform a sync of the curated
+# mirrors utilized by distro-core.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 17 * * *'
+
+env:
+  MIRROR_URI: ssh://git@github.com/distro-core-curated-mirrors
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  job-mirrors-sync:
+    runs-on: self-hosted
+    steps:
+      - name: secrets install ssh key
+        run: |
+          mkdir -p ${HOME}/.ssh
+          chmod 0700 ${HOME}/.ssh
+          touch ${HOME}/.ssh/id_ed25519
+          chmod 0600 ${HOME}/.ssh/id_ed25519
+          touch ${HOME}/.ssh/id_ed25519.pub
+          chmod 0644 ${HOME}/.ssh/id_ed25519.pub
+          touch ${HOME}/.ssh/config
+          chmod 0644 ${HOME}/.ssh/config
+          cat >${HOME}/.ssh/id_ed25519 <<EOF
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          cat >${HOME}/.ssh/id_ed25519.pub <<EOF
+          ${{ secrets.SSH_PUBLIC_KEY }}
+          EOF
+          if ! grep -q -e ".ssh/id_ed25519$" ${HOME}/.ssh/config; then
+            printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
+          fi
+          ssh git@github.com || true
+      - name: perform mirrors sync
+        run: |
+          repo_list=(
+            # mirror                    # mirror src_uri
+            bitbake                     https://git.openembedded.org/bitbake
+            boot2qt-manifest            https://code.qt.io/yocto/boot2qt-manifest.git
+            faux                        https://src.libcode.org/pkun/faux.git
+            klish                       https://src.libcode.org/pkun/klish.git
+            lmp-manifest                https://github.com/foundriesio/lmp-manifest
+            lmp-tools                   https://github.com/foundriesio/lmp-tools.git
+            meta-amd                    https://git.yoctoproject.org/meta-amd
+            meta-arm                    https://git.yoctoproject.org/meta-arm
+            meta-balena                 https://github.com/balena-os/meta-balena.git
+            meta-clang                  https://github.com/kraj/meta-clang.git
+            meta-cloud-services         https://git.yoctoproject.org/meta-cloud-services
+            meta-dpdk                   https://git.yoctoproject.org/meta-dpdk
+            meta-freescale-3rdparty     https://github.com/Freescale/meta-freescale-3rdparty.git
+            meta-freescale              https://github.com/Freescale/meta-freescale.git
+            meta-intel                  https://git.yoctoproject.org/meta-intel
+            meta-lmp                    https://github.com/foundriesio/meta-lmp.git
+            meta-lts-mixins             https://git.yoctoproject.org/meta-lts-mixins
+            meta-mingw                  https://git.yoctoproject.org/git/meta-mingw
+            meta-openembedded-contrib   https://git.openembedded.org/meta-openembedded-contrib
+            meta-openembedded           https://git.openembedded.org/meta-openembedded
+            meta-openwrt                https://github.com/kraj/meta-openwrt.git
+            meta-qt5                    https://github.com/meta-qt5/meta-qt5.git
+            meta-qt6                    https://code.qt.io/yocto/meta-qt6.git
+            meta-raspberrypi            https://github.com/agherzan/meta-raspberrypi.git
+            meta-rauc                   https://github.com/rauc/meta-rauc.git
+            meta-rust                   https://github.com/meta-rust/meta-rust.git
+            meta-secure-core            https://github.com/Wind-River/meta-secure-core.git
+            meta-security               https://git.yoctoproject.org/meta-security
+            meta-selinux                https://git.yoctoproject.org/meta-selinux
+            meta-st-stm32mp             https://github.com/STMicroelectronics/meta-st-stm32mp.git
+            meta-sunxi                  https://github.com/linux-sunxi/meta-sunxi.git
+            meta-tegra                  https://github.com/OE4T/meta-tegra.git
+            meta-tensorflow             https://git.yoctoproject.org/meta-tensorflow
+            meta-ti                     https://git.yoctoproject.org/meta-ti
+            meta-updater                https://github.com/uptane/meta-updater.git
+            meta-virtualization         https://git.yoctoproject.org/meta-virtualization
+            meta-xilinx-tools           https://github.com/foundriesio/meta-xilinx-tools.git
+            meta-xilinx                 https://github.com/foundriesio/meta-xilinx.git
+            meta-yocto                  https://git.yoctoproject.org/meta-yocto
+            mlvpn                       https://github.com/zehome/MLVPN.git
+            openembedded-core           https://git.openembedded.org/openembedded-core
+            poky-contrib                https://git.yoctoproject.org/poky-contrib
+            poky                        https://git.yoctoproject.org/poky
+            yocto-meta-kde              https://github.com/KDE/yocto-meta-kde.git
+            yocto-meta-kf5              https://github.com/KDE/yocto-meta-kf5.git
+            yocto-meta-kf6              https://github.com/KDE/yocto-meta-kf6.git
+            VeraCrypt                   https://github.com/veracrypt/VeraCrypt.git
+            VeraCrypt-DCS               https://github.com/veracrypt/VeraCrypt-DCS.git
+          )
+          tmp=tmp
+          for i in $(seq 0 2 $((${#repo_list[@]}-2))); do
+            echo "begin ${repo_list[ $((i+1)) ]}:"
+            rm -fr $tmp
+            if git clone --quiet --mirror ${repo_list[ $((i+1)) ]} $tmp; then
+              echo "clone ${repo_list[ $((i+1)) ]}"
+              cd $tmp
+              git for-each-ref --format "delete %(refname)" refs/pull | git update-ref --stdin
+              git for-each-ref --format "delete %(refname)" refs/meta | git update-ref --stdin
+              git for-each-ref --format "delete %(refname)" refs/merge-requests | git update-ref --stdin
+              # echo "push ${MIRROR_URI}/${repo_list[ $((i+0)) ]}.git"
+              git push --porcelain --mirror ${MIRROR_URI}/${repo_list[ $((i+0)) ]}.git | grep -v "\[up to date\]"
+              cd ..
+            fi
+            echo "end ${repo_list[ $((i+1)) ]}"
+          done
+          rm -fr $tmp
