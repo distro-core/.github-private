@@ -1,4 +1,4 @@
-name: Mirrors Sync
+name: Update Distro Core Curated Mirrors
 
 on:
   workflow_dispatch:
