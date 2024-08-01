@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  job-mirrors-sync:
+  job-images-build:
     runs-on: self-hosted
     steps:
       - name: secrets install ssh key
@@ -74,26 +74,8 @@ jobs:
           repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
           mkdir -p .repo/local_manifests
           cat >.repo/local_manifests/local_manifest.xml <<EOF
-          <?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
           <manifest>
-            <remote
-              name=\"local-distro-core\"
-              fetch=\"git@github.com:distro-core\"
-              alias=\"origin\"
-            />
-            <project
-              name=\"meta-distro\"
-              path=\"layers/meta-distro\"
-              remote=\"local-distro-core\"
-              revision=\"scarthgap\"
-              upstream=\"scarthgap\"
-              dest-branch=\"scarthgap\"
-              groups=\"non-confidential,mirror,oss,distro-core,distro-full,base\"
-              sync-c=\"false\"
-              sync-s=\"false\"
-              sync-tags=\"true\"
-            >
-            </project>
           </manifest>
           EOF
           repo sync
