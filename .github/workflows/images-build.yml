@@ -17,6 +17,7 @@ env:
   MANIFEST_BRANCH: main
   MANIFEST_NAME: distro-head-scarthgap.xml
 
+
 defaults:
   run:
     shell: bash
@@ -27,6 +28,8 @@ jobs:
     steps:
       - name: mask variable SSH_PRIVATE_KEY
         if: ${{ vars.SSH_PRIVATE_KEY }}
+        env:
+          ACTIONS_STEP_DEBUG: false
         run: |
           while read -r line
           do
