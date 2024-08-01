@@ -10,7 +10,7 @@ name: Workflow Keepalive
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '15 0,6,12,18 * * *'
 
 jobs:
   job-workflow-keepalive:

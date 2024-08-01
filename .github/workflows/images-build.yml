@@ -1,4 +1,4 @@
-name: Images Build
+name: Disto Core Images Build
 
 on:
   workflow_dispatch:
