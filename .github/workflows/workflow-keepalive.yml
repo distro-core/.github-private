@@ -1,4 +1,4 @@
-name: Workflow Keepalive
+name: Scheduled Workflow Keepalive
 
 # An action to perform a reset on github actions
 # workflows. According to github, repository actions

@@ -1,7 +1,21 @@
 name: Disto Core Images Build
 
+# An action to perform a default images build for the selected
+# devices. Requires organization secrets SSH_PUBLIC_KEY and
+# SSH_PRIVATE_KEY be defined and valid for successful sync to
+# the repositories referenced in the manifest.
+
+# This action is targeted to runners [ self-hosted, almalinux ]
+
 on:
   workflow_dispatch:
+
+env:
+  DISTROS: distro-core distro-full
+  MACHINES: sbc-gene-bt06
+  MANIFEST_URI: git@github.com:distro-core/distro-manifest.git
+  MANIFEST_BRANCH: main
+  MANIFEST_NAME: distro-head-scarthgap.xml
 
 defaults:
   run:
@@ -73,8 +87,11 @@ jobs:
       - name: repo init and sync
         shell: bash
         run: |
+          [ -n "$MANIFEST_URI" ] || ( echo "Required variable unset MANIFEST_URI" ; exit 1 )
+          [ -n "$MANIFEST_BRANCH" ] || ( echo "Required variable unset MANIFEST_BRANCH" ; exit 1 )
+          [ -n "$MANIFEST_NAME" ] || ( echo "Required variable unset MANIFEST_NAME" ; exit 1 )
           export PATH="${HOME}/.local/bin:${PATH}"
-          repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
+          repo init -u $MANIFEST_URI -b $MANIFEST_BRANCH -m $MANIFEST_NAME --no-clone-bundle --no-repo-verify
           mkdir -p .repo/local_manifests
           cat >.repo/local_manifests/local_manifest.xml <<EOF
           <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
@@ -84,17 +101,16 @@ jobs:
           repo sync
       - name: scripts/images-build fetch
         run: |
+          [ -n "$DISTROS" ] || ( echo "Required variable unset DISTROS" ; exit 1 )
+          [ -n "$MACHINES" ] || ( echo "Required variable unset MACHINES" ; exit 1 )
           export PATH="${HOME}/.local/bin:${PATH}"
           export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
           export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
-          scripts/images-build --target="--runall=fetch distro-image distro-sdk-image"
-      - name: scripts/images-build fetch
-        shell: bash
-        run: |
-          export PATH="${HOME}/.local/bin:${PATH}"
-          export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
-          export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
-          scripts/images-build --target="--distro=distro-full --runall=fetch distro-image distro-sdk-image"
+          for distro in $DISTROS; do
+            for machine in $MACHINES; do
+              scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
+            done
+          done
       # - name: scripts/images-build build
       #   run: |
       #     export PATH="${HOME}/.local/bin:${PATH}"
