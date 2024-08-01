@@ -89,16 +89,19 @@ jobs:
             "VeraCrypt-DCS"             "https://github.com/veracrypt/VeraCrypt-DCS.git"
           )
           for i in $(seq 0 2 $((${#repo_list[@]}-2))); do
-            echo "${repo_list[ $((i+0)) ]}:"
+            echo "begin ${repo_list[ $((i+0)) ]}:"
             rm -fr tmp
             if git clone --quiet --mirror ${repo_list[ $((i+1)) ]} tmp; then
+              echo "clone from ${repo_list[ $((i+1)) ]}"
               cd tmp
               git for-each-ref --format "delete %(refname)" refs/pull | git update-ref --stdin
               git for-each-ref --format "delete %(refname)" refs/meta | git update-ref --stdin
               git for-each-ref --format "delete %(refname)" refs/merge-requests | git update-ref --stdin
+              echo "push to ${MIRROR_URI}/${repo_list[ $((i+0)) ]}.git"
               git push --porcelain --mirror ${MIRROR_URI}/${repo_list[ $((i+0)) ]}.git | grep -v "\[up to date\]"
               cd ..
             fi
+            echo "end ${repo_list[ $((i+0)) ]}:"
           done
           rm -fr tmp
 
