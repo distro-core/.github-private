@@ -13,11 +13,31 @@ env:
 
 jobs:
 
-  sync-mirrors:
-    runs-on: self-hosted
-
+  job-workflow-keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
+      - uses: liskin/gh-workflow-keepalive@v1
+      - name: checkout self
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: commit timestamp
+        shell: bash
+        run: |
+          timestamp=$(date -Isec)
+          git checkout -b $timestamp
+          echo $timestamp >.timestamp
+          git add .timestamp
+          git commit -m "Update $timestamp"
+          git push -u origin $timestamp
 
+  job-mirrors-sync:
+    runs-on: ubuntu-latest
+    steps:
       - name: secrets install ssh key
         shell: bash
         run: |
@@ -34,7 +54,6 @@ jobs:
           ${{ secrets.SSH_PUBLIC_KEY }}
           EOF
           ssh -i ${HOME}/.ssh/id_ed25519 git@github.com || true
-
       - name: perform mirrors sync
         shell: bash
         run: |
@@ -102,22 +121,6 @@ jobs:
             fi
           done
           rm -fr tmp
-
-      - name: checkout self
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: commit timestamp
-        shell: bash
-        run: |
-          timestamp=$(date -Isec)
-          git checkout -b $timestamp
-          echo $timestamp >.timestamp
-          git add .timestamp
-          git commit -m "Update $timestamp"
-          git push -u origin $timestamp
 
       # - name: install repo tool
       #   shell: bash
