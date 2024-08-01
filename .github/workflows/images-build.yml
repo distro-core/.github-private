@@ -1,0 +1,84 @@
+name: Images Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  job-mirrors-sync:
+    runs-on: self-hosted
+    steps:
+      - name: secrets install ssh key
+        shell: bash
+        run: |
+          mkdir -p ${HOME}/.ssh
+          chmod 0700 ${HOME}/.ssh
+          touch ${HOME}/.ssh/id_ed25519
+          chmod 0600 ${HOME}/.ssh/id_ed25519
+          touch ${HOME}/.ssh/id_ed25519.pub
+          chmod 0644 ${HOME}/.ssh/id_ed25519.pub
+          touch ${HOME}/.ssh/config
+          chmod 0644 ${HOME}/.ssh/config
+          cat >${HOME}/.ssh/id_ed25519 <<EOF
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          cat >${HOME}/.ssh/id_ed25519.pub <<EOF
+          ${{ secrets.SSH_PUBLIC_KEY }}
+          EOF
+          cat >${HOME}/.ssh/config <<EOF
+          Host *
+            IdentitiesOnly yes
+            IdentityFile ${HOME}/.ssh/id_ed25519
+          EOF
+          ssh git@github.com || true
+      # - name: install host dependency
+      #   shell: bash
+      #   run: |
+      #     source /etc/os-release
+      #     case ${ID} in
+      #     almalinux*)
+      #       echo sudo dnf install -y epel-release
+      #       echo sudo yum install -y dnf-plugins-core
+      #       echo sudo dnf config-manager --set-enabled crb
+      #       echo sudo dnf makecache
+      #       echo sudo dnf upgrade -y
+      #       echo sudo dnf install -y gawk make wget tar bzip2 gzip python3 unzip perl patch \
+      #         diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
+      #         ccache socat perl-Data-Dumper perl-Text-ParseWords perl-Thread-Queue \
+      #         python3-pip python3-GitPython python3-jinja2 python3-pexpect xz which \
+      #         rpcgen zstd lz4 cpio glibc-langpack-en libacl git-lfs hostname
+      #       ;;
+      #     debian* | ubuntu* )
+      #       sudo apt update -y
+      #       sudo apt upgrade -y
+      #       sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
+      #         chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
+      #         iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
+      #         file locales libacl1 git-lfs make libxml2-utils
+      #       sudo locale-gen en_US.UTF-8
+      #       ;;
+      #     * )
+      #       exit 1
+      #       ;;
+      #     esac
+
+      - name: install repo tool
+        shell: bash
+        run: |
+          PATH="${HOME}/.local/bin:${PATH}"
+          mkdir -p ${HOME}/.local/bin
+          echo "path: ${PATH}"
+          PATH="${HOME}/.local/bin:${PATH}"
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
+          chmod a+rx ${HOME}/.local/bin/repo
+          repo || true
+      - name: repo init/sync
+        shell: bash
+        run: |
+          PATH="${HOME}/.local/bin:${PATH}"
+          repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
+          repo sync
+      # - name: scripts/images-build
+      #   shell: bash
+      #   run: |
+      #     PATH="${HOME}/.local/bin:${PATH}"
+      #     scripts/images-build --target="--runall=fetch distro-core-image distro-core-sdk-image"

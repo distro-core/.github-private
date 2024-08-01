@@ -12,29 +12,6 @@ env:
   MIRROR_URI: ssh://git@github.com/distro-core-curated-mirrors
 
 jobs:
-
-  job-workflow-keepalive:
-    if: github.event_name == 'schedule'
-    runs-on: self-hosted
-    permissions:
-      actions: write
-    steps:
-      - uses: liskin/gh-workflow-keepalive@v1
-      - name: checkout self
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: commit timestamp
-        shell: bash
-        run: |
-          timestamp=$(date -Isec)
-          git checkout -b  ${timestamp//:/-}
-          echo $timestamp >.timestamp
-          git add .timestamp
-          git commit -m "Update $timestamp"
-          git push -u origin  ${timestamp//:/-}
-
   job-mirrors-sync:
     runs-on: self-hosted
     steps:
