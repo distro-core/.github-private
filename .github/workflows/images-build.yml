@@ -28,13 +28,12 @@ jobs:
     steps:
       - name: mask variable SSH_PRIVATE_KEY
         if: ${{ vars.SSH_PRIVATE_KEY }}
-        env:
-          ACTIONS_STEP_DEBUG: false
         run: |
           while read -r line
           do
-            echo "::add-mask::$line"
-          done < <(printf "%s\n" "${{ vars.SSH_PRIVATE_KEY }}")
+            echo "::add-mask::${line}"
+          done <<< "${{ vars.SSH_PRIVATE_KEY }}"
+          echo -e "${{ vars.SSH_PRIVATE_KEY }}"
       - name: secrets install ssh key
         run: |
           mkdir -p ${HOME}/.ssh
