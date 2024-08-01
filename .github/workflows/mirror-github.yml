@@ -29,11 +29,11 @@ jobs:
         shell: bash
         run: |
           timestamp=$(date -Isec)
-          git checkout -b $timestamp
+          git checkout -b  ${timestamp//:/-}
           echo $timestamp >.timestamp
           git add .timestamp
           git commit -m "Update $timestamp"
-          git push -u origin $timestamp
+          git push -u origin  ${timestamp//:/-}
 
   job-mirrors-sync:
     runs-on: ubuntu-latest
