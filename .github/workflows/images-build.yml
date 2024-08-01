@@ -1,4 +1,4 @@
-name: Disto Core Images Build
+name: Distro Core Images Build
 
 # An action to perform a default images build for the selected
 # devices. Requires organization secrets SSH_PUBLIC_KEY and
