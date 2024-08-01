@@ -25,15 +25,13 @@ jobs:
   job-images-build:
     runs-on: [ self-hosted, almalinux ]
     steps:
-      - name: check environment
+      - name: mask variable SSH_PRIVATE_KEY
+        if: ${{ vars.SSH_PRIVATE_KEY }}
         run: |
-          echo "::add-mask::${{ vars.SSH_PUBLIC_KEY }}"
-          echo "::add-mask::${{ vars.SSH_PRIVATE_KEY }}"
-          [ -n "${{ vars.SSH_PUBLIC_KEY }}" ] || ( echo "Required variable unset SSH_PUBLIC_KEY" ; exit 1 )
-          [ -n "${{ vars.SSH_PRIVATE_KEY }}" ] || ( echo "Required variable unset SSH_PRIVATE_KEY" ; exit 1 )
-          [ -n "$MANIFEST_URI" ] || ( echo "Required variable unset MANIFEST_URI" ; exit 1 )
-          [ -n "$MANIFEST_BRANCH" ] || ( echo "Required variable unset MANIFEST_BRANCH" ; exit 1 )
-          [ -n "$MANIFEST_NAME" ] || ( echo "Required variable unset MANIFEST_NAME" ; exit 1 )
+          while read -r line
+          do
+            echo "::add-mask::$line"
+          done < <(printf "%s\n" "${{ vars.SSH_PRIVATE_KEY }}")
       - name: secrets install ssh key
         run: |
           mkdir -p ${HOME}/.ssh
