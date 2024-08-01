@@ -61,31 +61,58 @@ jobs:
       - name: install repo tool
         shell: bash
         run: |
-          PATH="${HOME}/.local/bin:${PATH}"
+          export PATH="${HOME}/.local/bin:${PATH}"
           mkdir -p ${HOME}/.local/bin
           echo "path: ${PATH}"
-          PATH="${HOME}/.local/bin:${PATH}"
           curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
           chmod a+rx ${HOME}/.local/bin/repo
           repo || true
       - name: repo init and sync
         shell: bash
         run: |
-          PATH="${HOME}/.local/bin:${PATH}"
+          export PATH="${HOME}/.local/bin:${PATH}"
           repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
+          mkdir -p .repo/local_manifests
+          cat >.repo/local_manifests/local_manifest.xml <<EOF
+          <?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <manifest>
+            <remote
+              name=\"local-distro-core\"
+              fetch=\"git@github.com:distro-core\"
+              alias=\"origin\"
+            />
+            <project
+              name=\"meta-distro\"
+              path=\"layers/meta-distro\"
+              remote=\"local-distro-core\"
+              revision=\"scarthgap\"
+              upstream=\"scarthgap\"
+              dest-branch=\"scarthgap\"
+              groups=\"non-confidential,mirror,oss,distro-core,distro-full,base\"
+              sync-c=\"false\"
+              sync-s=\"false\"
+              sync-tags=\"true\"
+            >
+            </project>
+          </manifest>
+          EOF
           repo sync
       - name: scripts/images-build fetch
         shell: bash
         run: |
-          PATH="${HOME}/.local/bin:${PATH}"
+          export PATH="${HOME}/.local/bin:${PATH}"
+          export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
+          export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
           scripts/images-build --target="--runall=fetch distro-image distro-sdk-image"
       - name: scripts/images-build fetch
         shell: bash
         run: |
-          PATH="${HOME}/.local/bin:${PATH}"
+          export PATH="${HOME}/.local/bin:${PATH}"
+          export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
+          export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
           scripts/images-build --target="--distro=distro-full --runall=fetch distro-image distro-sdk-image"
       # - name: scripts/images-build build
       #   shell: bash
       #   run: |
-      #     PATH="${HOME}/.local/bin:${PATH}"
+      #     export PATH="${HOME}/.local/bin:${PATH}"
       #     scripts/images-build --target="distro-image distro-sdk-image"
