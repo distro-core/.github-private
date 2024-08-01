@@ -3,33 +3,37 @@ name: Images Build
 on:
   workflow_dispatch:
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   job-images-build:
     runs-on: self-hosted
     steps:
       - name: secrets install ssh key
-        shell: bash
         run: |
+          [ -n "${{ secrets.SSH_PUBLIC_KEY }}" ] || ( echo "Required variable unset SSH_PUBLIC_KEY" ; exit 1 )
+          [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ] || ( echo "Required variable unset SSH_PRIVATE_KEY" ; exit 1 )
           mkdir -p ${HOME}/.ssh
           chmod 0700 ${HOME}/.ssh
-          touch ${HOME}/.ssh/id_ed25519
-          chmod 0600 ${HOME}/.ssh/id_ed25519
           touch ${HOME}/.ssh/id_ed25519.pub
           chmod 0644 ${HOME}/.ssh/id_ed25519.pub
+          touch ${HOME}/.ssh/id_ed25519
+          chmod 0600 ${HOME}/.ssh/id_ed25519
           touch ${HOME}/.ssh/config
           chmod 0644 ${HOME}/.ssh/config
-          cat >${HOME}/.ssh/id_ed25519 <<EOF
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
           cat >${HOME}/.ssh/id_ed25519.pub <<EOF
           ${{ secrets.SSH_PUBLIC_KEY }}
+          EOF
+          cat >${HOME}/.ssh/id_ed25519 <<EOF
+          ${{ secrets.SSH_PRIVATE_KEY }}
           EOF
           if ! grep -q -e '.ssh/id_ed25519$' ${HOME}/.ssh/config; then
             printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
           fi
           ssh git@github.com || true
       # - name: install host dependency
-      #   shell: bash
       #   run: |
       #     source /etc/os-release
       #     case ${ID} in
@@ -59,7 +63,6 @@ jobs:
       #       ;;
       #     esac
       - name: install repo tool
-        shell: bash
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
           mkdir -p ${HOME}/.local/bin
@@ -80,7 +83,6 @@ jobs:
           EOF
           repo sync
       - name: scripts/images-build fetch
-        shell: bash
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
           export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
@@ -94,7 +96,6 @@ jobs:
           export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
           scripts/images-build --target="--distro=distro-full --runall=fetch distro-image distro-sdk-image"
       # - name: scripts/images-build build
-      #   shell: bash
       #   run: |
       #     export PATH="${HOME}/.local/bin:${PATH}"
       #     scripts/images-build --target="distro-image distro-sdk-image"
