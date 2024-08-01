@@ -1,10 +1,11 @@
 name: Workflow Keepalive
 
+# Utilize an action to perform a reset on github actions
+# workflows. According to github, repository actions
+# can be suspended if the repository is inactive for
+# 60 days.
+
 on:
-  workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
   schedule:
     - cron: '0 * * * *'
 
@@ -16,7 +17,7 @@ jobs:
     permissions:
       actions: write
     steps:
-      - uses: liskin/gh-workflow-keepalive@v1
+      - uses: distro-core/gh-workflow-keepalive@v1
       # - name: checkout self
       #   uses: actions/checkout@v4
       #   with:
