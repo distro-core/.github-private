@@ -74,13 +74,18 @@ jobs:
           PATH="${HOME}/.local/bin:${PATH}"
           repo init -u git@github.com:distro-core/distro-manifest.git -b main -m distro-head-scarthgap.xml --no-clone-bundle --no-repo-verify
           repo sync
-      - name: run scripts/images-build fetch
+      - name: scripts/images-build fetch
         shell: bash
         run: |
           PATH="${HOME}/.local/bin:${PATH}"
-          scripts/images-build --target="--runall=fetch distro-core-image distro-core-sdk-image"
-      # - name: run scripts/images-build build
+          scripts/images-build --target="--runall=fetch distro-image distro-sdk-image"
+      - name: scripts/images-build fetch
+        shell: bash
+        run: |
+          PATH="${HOME}/.local/bin:${PATH}"
+          scripts/images-build --target="--distro=distro-full --runall=fetch distro-image distro-sdk-image"
+      # - name: scripts/images-build build
       #   shell: bash
       #   run: |
       #     PATH="${HOME}/.local/bin:${PATH}"
-      #     scripts/images-build --target="distro-core-image distro-core-sdk-image"
+      #     scripts/images-build --target="distro-image distro-sdk-image"
