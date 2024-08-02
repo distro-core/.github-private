@@ -83,4 +83,8 @@ jobs:
         run: |
           export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
-          scripts/images-build --target="$IMAGES"
+          for distro in $DISTROS; do
+            for machine in $MACHINES; do
+              scripts/images-build --distro=$distro --machine=$machine --target="$IMAGES"
+            done
+          done
