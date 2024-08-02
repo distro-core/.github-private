@@ -59,13 +59,13 @@ jobs:
         run: |
           repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
           repo sync
-      # - name: scripts/images-build fetch
-      #   run: |
-      #     for distro in $DISTROS; do
-      #       for machine in $MACHINES; do
-      #         scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
-      #       done
-      #     done
+      - name: scripts/images-build fetch
+        run: |
+          for distro in $DISTROS; do
+            for machine in $MACHINES; do
+              scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
+            done
+          done
       # - name: scripts/images-build build
       #   run: |
       #     scripts/images-build --target="distro-image distro-sdk-image"
