@@ -23,11 +23,12 @@ defaults:
     shell: bash
 
 jobs:
-  job-prepare:
+  job-run:
     runs-on: [ self-hosted, almalinux ]
     permissions:
       actions: write
     steps:
+      ### PREPARE
       - name: install ssh keys
         run: |
           cat >id_ed25519.pub <<EOF
@@ -51,11 +52,7 @@ jobs:
           echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
 
-  job-work:
-    runs-on: [ self-hosted, almalinux ]
-    permissions:
-      actions: write
-    steps:
+      ### WORK
       - name: mirrors sync
         run: |
           repo_list=(
