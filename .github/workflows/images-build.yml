@@ -26,7 +26,6 @@ jobs:
     runs-on: [ self-hosted, almalinux ]
     steps:
       - name: install ssh key
-        if: ${{ secrets.SSH_PUBLIC_KEY && secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ${HOME}/.ssh
           chmod 0700 ${HOME}/.ssh
