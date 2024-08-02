@@ -49,12 +49,14 @@ jobs:
           mkdir -p $localpath
           echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
+
       - uses: distro-core/gh-workflow-keepalive@v1
+
       # - name: checkout self
       #   uses: actions/checkout@v4
       #   with:
       #     repository: ${{ github.repository }}
-      #     ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
       # - name: commit timestamp
       #   shell: bash
       #   run: |

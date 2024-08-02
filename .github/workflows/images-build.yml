@@ -30,6 +30,8 @@ defaults:
 jobs:
   job-images-build:
     runs-on: [ self-hosted, almalinux ]
+    permissions:
+      actions: write
     steps:
       - name: install ssh keys
         run: |
@@ -53,6 +55,7 @@ jobs:
           mkdir -p $localpath
           echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
+
       - name: install repo tool
         run: |
           curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
