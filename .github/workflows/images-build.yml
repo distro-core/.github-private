@@ -29,10 +29,12 @@ jobs:
     steps:
       - name: mask variable SSH_PRIVATE_KEY
         run: |
-          while read -r line
-          do
-            echo "::add-mask::${line}"
-          done <<< "$SSH_PRIVATE_KEY"
+          {
+            while read -r line
+            do
+              echo "::add-mask::${line}"
+            done <<< "$SSH_PRIVATE_KEY"
+          } >/dev/null 2>&1
           echo "test mask of SSH_PRIVATE_KEY"
           echo -e "$SSH_PRIVATE_KEY"
       - name: secrets install ssh key
