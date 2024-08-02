@@ -1,11 +1,16 @@
 name: Images Build
 
 # An action to perform a default images build for the selected
-# devices. Requires organization secrets SSH_PUBLIC_KEY and
-# SSH_PRIVATE_KEY be defined and valid for successful sync to
+# devices. Requires organization secrets vars.PUBLIC_SSH_KEY and
+# secrets.PRIVATE_SSH_KEY be defined and valid for successful sync to
 # the repositories referenced in the manifest.
 
-# This action is targeted to runners [ self-hosted, almalinux ]
+# Requires
+# vars.PUBLIC_SSH_KEY
+# secrets.PRIVATE_SSH_KEY
+
+# Runs on
+# [ self-hosted, almalinux ]
 
 on:
   workflow_dispatch:
@@ -26,28 +31,28 @@ jobs:
   job-images-build:
     runs-on: [ self-hosted, almalinux ]
     steps:
-      - name: install ssh key
+      - name: install ssh keys
         run: |
-          mkdir -p ${HOME}/.ssh
-          chmod 0700 ${HOME}/.ssh
-          touch ${HOME}/.ssh/id_ed25519.pub
-          chmod 0644 ${HOME}/.ssh/id_ed25519.pub
-          touch ${HOME}/.ssh/id_ed25519
-          chmod 0600 ${HOME}/.ssh/id_ed25519
-          touch ${HOME}/.ssh/config
-          chmod 0644 ${HOME}/.ssh/config
-          cat >${HOME}/.ssh/id_ed25519.pub <<EOF
-          ${{ secrets.SSH_PUBLIC_KEY }}
+          cat >id_ed25519.pub <<EOF
+          ${{ vars.PUBLIC_SSH_KEY }}
           EOF
           cat >${HOME}/.ssh/id_ed25519 <<EOF
-          ${{ secrets.SSH_PRIVATE_KEY }}
+          ${{ secrets.PRIVATE_SSH_KEY }}
           EOF
+          install -d -m 0700 ${HOME}/.ssh
+          install -D -m 0600 id_ed25519 ${HOME}/.ssh/id_ed25519
+          install -D -m 0644 id_ed25519.pub ${HOME}/.ssh/id_ed25519.pub
           if ! grep -q -e '.ssh/id_ed25519$' ${HOME}/.ssh/config; then
-            printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
+            printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >ssh_config
+            install -D -m 0644 ssh_config ${HOME}/.ssh/config
           fi
           ssh git@github.com || true
-          mkdir -p ${HOME}/.local/bin
-          echo "PATH=${HOME}/.local/bin:$PATH" >> $GITHUB_ENV
+      - name: install local path
+        run: |
+          localpath=${HOME}/.local/bin
+          mkdir -p $localpath
+          echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
+          echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
       - name: install repo tool
         run: |
           curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
