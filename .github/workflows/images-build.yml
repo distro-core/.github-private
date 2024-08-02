@@ -38,7 +38,7 @@ jobs:
       actions: write
     steps:
       ### PREPARE
-      - name: install ssh keys
+      - name: 🏃install ssh keys
         run: |
           echo "::add-mask::$HOME"
           cat >id_ed25519.pub <<EOF
@@ -55,34 +55,34 @@ jobs:
             install -D -m 0644 ssh_config $HOME/.ssh/config
           fi
           ssh git@github.com || true
-      - name: install local path
+      - name: 🏃install local path
         run: |
           local_path=$HOME/.local/bin
           mkdir -p $local_path
           echo "PATH=$local_path:$PATH" >> $GITHUB_ENV
 
       ### WORK
-      - name: install repo tool
+      - name: 🏃install repo tool
         run: |
           curl https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
           chmod a+rx $HOME/.local/bin/repo
           [ -n "$(command -v repo)" ] || exit 1
-      - name: repo init and sync
+      - name: 🏃repo init and sync
         shell: bash
         run: |
           repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
           repo sync
-      - name: fetch
+      - name: 🏃fetch
         run: |
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::🟩fetch $machine $distro $IMAGES"
+              echo "::group::🎗️fetch $machine $distro $IMAGES"
               scripts/images-build --machine=$machine --distro=$distro --target="-k --runall=fetch $IMAGES"
               echo "::endgroup::"
             done
           done
-      - name: cache
-        uses: actions/cache@v4
+      - name: 🏃cache save build downloads
+        uses: actions/cache/save@v4
         with:
           key: ${{ runner.os }}-build-downloads
           path: |
@@ -97,14 +97,20 @@ jobs:
             build/downloads/*.txt
             build/downloads/*.xz
             build/downloads/*.zip
-      - name: build
+      - name: 🏃cache save build sstate-cache
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ runner.os }}-build-sstate-cache
+          path: |
+            build/sstate-cache
+      - name: 🏃build
         run: |
           # export BB_NO_NETWORK="1"
           export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::🟩bitbake $machine $distro $IMAGES"
+              echo "::group::🎗️bitbake $machine $distro $IMAGES"
               scripts/images-build --machine=$machine --distro=$distro --target="-k $IMAGES"
               echo "::endgroup::"
             done
