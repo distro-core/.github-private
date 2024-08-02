@@ -23,7 +23,7 @@ defaults:
     shell: bash
 
 jobs:
-  job-mirrors-sync:
+  job-prepare:
     runs-on: [ self-hosted, almalinux ]
     permissions:
       actions: write
@@ -51,6 +51,11 @@ jobs:
           echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
 
+  job-work:
+    runs-on: [ self-hosted, almalinux ]
+    permissions:
+      actions: write
+    steps:
       - name: mirrors sync
         run: |
           repo_list=(

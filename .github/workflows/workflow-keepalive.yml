@@ -22,8 +22,8 @@ defaults:
     shell: bash
 
 jobs:
-  job-workflow-keepalive:
-    runs-on:  [ self-hosted, almalinux ]
+  job-prepare:
+    runs-on: [ self-hosted, almalinux ]
     permissions:
       actions: write
     steps:
@@ -50,6 +50,12 @@ jobs:
           echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
 
+  job-work:
+    needs: job-prepare
+    runs-on: [ self-hosted, almalinux ]
+    permissions:
+      actions: write
+    steps:
       - uses: distro-core/gh-workflow-keepalive@v1
 
       # - name: checkout self

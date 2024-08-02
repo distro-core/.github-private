@@ -27,8 +27,12 @@ defaults:
   run:
     shell: bash
 
+# concurrency:
+#   group: ${{ github.name }}-${{ github.workflow }}-${{ github.head_ref }}
+#   cancel-in-progress: true
+
 jobs:
-  job-images-build:
+  job-prepare:
     runs-on: [ self-hosted, almalinux ]
     permissions:
       actions: write
@@ -56,6 +60,12 @@ jobs:
           echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
 
+  job-work:
+    needs: job-prepare
+    runs-on: [ self-hosted, almalinux ]
+    permissions:
+      actions: write
+    steps:
       - name: install repo tool
         run: |
           curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
