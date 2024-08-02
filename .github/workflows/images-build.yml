@@ -76,8 +76,8 @@ jobs:
         run: |
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::fetch $machine $distro"
-              scripts/images-build --distro=$distro --machine=$machine --target="-k --runall=fetch $IMAGES"
+              echo "::group::fetch $machine $distro $IMAGES"
+              scripts/images-build --machine=$machine --distro=$distro --target="-k --runall=fetch $IMAGES"
               echo "::endgroup::"
             done
           done
@@ -88,8 +88,8 @@ jobs:
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::bitbake $machine $distro"
-              scripts/images-build --distro=$distro --machine=$machine --target="-k $IMAGES"
+              echo "::group::bitbake $machine $distro $IMAGES"
+              scripts/images-build --machine=$machine --distro=$distro --target="-k $IMAGES"
               echo "::endgroup::"
             done
           done
