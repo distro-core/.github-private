@@ -16,8 +16,6 @@ env:
   MANIFEST_URI: git@github.com:distro-core/distro-manifest.git
   MANIFEST_BRANCH: main
   MANIFEST_NAME: distro-head-scarthgap.xml
-  SSH_PUBLIC_KEY: ${{ vars.SSH_PUBLIC_KEY }}
-  SSH_PRIVATE_KEY: ${{ vars.SSH_PRIVATE_KEY }}
 
 defaults:
   run:
@@ -28,13 +26,12 @@ jobs:
     runs-on: [ self-hosted, almalinux ]
     steps:
       - name: mask variable SSH_PRIVATE_KEY
-        if: ${{ vars.SSH_PUBLIC_KEY }}
         run: |
           (
             while read -r line
             do
               echo "::add-mask::${line}"
-            done <<< "$SSH_PRIVATE_KEY"
+            done <<< "${{ vars.SSH_PRIVATE_KEY }}"
           )
           echo "test mask of SSH_PRIVATE_KEY"
           echo -e "$SSH_PRIVATE_KEY"
