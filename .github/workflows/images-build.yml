@@ -45,62 +45,22 @@ jobs:
             printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
           fi
           ssh git@github.com || true
-      # - name: install host dependency
-      #   run: |
-      #     source /etc/os-release
-      #     case ${ID} in
-      #     almalinux*)
-      #       echo sudo dnf install -y epel-release
-      #       echo sudo yum install -y dnf-plugins-core
-      #       echo sudo dnf config-manager --set-enabled crb
-      #       echo sudo dnf makecache
-      #       echo sudo dnf upgrade -y
-      #       echo sudo dnf install -y gawk make wget tar bzip2 gzip python3 unzip perl patch \
-      #         diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
-      #         ccache socat perl-Data-Dumper perl-Text-ParseWords perl-Thread-Queue \
-      #         python3-pip python3-GitPython python3-jinja2 python3-pexpect xz which \
-      #         rpcgen zstd lz4 cpio glibc-langpack-en libacl git-lfs hostname
-      #       ;;
-      #     debian* | ubuntu* )
-      #       sudo apt update -y
-      #       sudo apt upgrade -y
-      #       sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
-      #         chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
-      #         iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
-      #         file locales libacl1 git-lfs make libxml2-utils
-      #       sudo locale-gen en_US.UTF-8
-      #       ;;
-      #     * )
-      #       exit 1
-      #       ;;
-      #     esac
-      # - name: install repo tool
-      #   run: |
-      #     export PATH="${HOME}/.local/bin:${PATH}"
-      #     mkdir -p ${HOME}/.local/bin
-      #     echo "path: ${PATH}"
-      #     curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
-      #     chmod a+rx ${HOME}/.local/bin/repo
-      #     repo || true
-      # - name: repo init and sync
-      #   shell: bash
-      #   run: |
-      #     export PATH="${HOME}/.local/bin:${PATH}"
-      #     repo init -u $MANIFEST_URI -b $MANIFEST_BRANCH -m $MANIFEST_NAME --no-clone-bundle --no-repo-verify
-      #     # mkdir -p .repo/local_manifests
-      #     # cat >.repo/local_manifests/local_manifest.xml <<EOF
-      #     # <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
-      #     # <manifest>
-      #     # </manifest>
-      #     # EOF
-      #     repo sync
+          mkdir -p ${HOME}/.local/bin
+          echo "PATH=${HOME}/.local/bin:$PATH" >> $GITHUB_ENV
+          echo "BB_NUMBER_THREADS=$(( $(nproc) * 0.50 ))" >> $GITHUB_ENV
+          echo "PARALLEL_MAKE=-j$(( $(nproc) * 0.50 ))" >> $GITHUB_ENV
+      - name: install repo tool
+        run: |
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
+          chmod a+rx ${HOME}/.local/bin/repo
+          repo || true
+      - name: repo init and sync
+        shell: bash
+        run: |
+          repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
+          repo sync
       # - name: scripts/images-build fetch
       #   run: |
-      #     [ -n "$DISTROS" ] || ( echo "Required variable unset DISTROS" ; exit 1 )
-      #     [ -n "$MACHINES" ] || ( echo "Required variable unset MACHINES" ; exit 1 )
-      #     export PATH="${HOME}/.local/bin:${PATH}"
-      #     export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
-      #     export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
       #     for distro in $DISTROS; do
       #       for machine in $MACHINES; do
       #         scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
@@ -108,5 +68,4 @@ jobs:
       #     done
       # - name: scripts/images-build build
       #   run: |
-      #     export PATH="${HOME}/.local/bin:${PATH}"
       #     scripts/images-build --target="distro-image distro-sdk-image"
