@@ -1,0 +1,29 @@
+      # - name: install host dependency
+      #   run: |
+      #     source /etc/os-release
+      #     case ${ID} in
+      #     almalinux*)
+      #       echo sudo dnf install -y epel-release
+      #       echo sudo yum install -y dnf-plugins-core
+      #       echo sudo dnf config-manager --set-enabled crb
+      #       echo sudo dnf makecache
+      #       echo sudo dnf upgrade -y
+      #       echo sudo dnf install -y gawk make wget tar bzip2 gzip python3 unzip perl patch \
+      #         diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
+      #         ccache socat perl-Data-Dumper perl-Text-ParseWords perl-Thread-Queue \
+      #         python3-pip python3-GitPython python3-jinja2 python3-pexpect xz which \
+      #         rpcgen zstd lz4 cpio glibc-langpack-en libacl git-lfs hostname
+      #       ;;
+      #     debian* | ubuntu* )
+      #       echo sudo apt update -y
+      #       echo sudo apt upgrade -y
+      #       echo sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential \
+      #         chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils \
+      #         iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool \
+      #         file locales libacl1 git-lfs make libxml2-utils
+      #       echo sudo locale-gen en_US.UTF-8
+      #       ;;
+      #     * )
+      #       exit 1
+      #       ;;
+      #     esac
