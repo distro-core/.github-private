@@ -72,23 +72,23 @@ jobs:
         run: |
           repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
           repo sync
-      - name: scripts/images-build fetch
+      - name: fetch
         run: |
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::$machine $distro"
+              echo "::group::fetch $machine $distro"
               scripts/images-build --distro=$distro --machine=$machine --target="-k --runall=fetch $IMAGES"
               echo "::endgroup::"
             done
           done
-      - name: scripts/images-build build
+      - name: build
         run: |
           export BB_NO_NETWORK="1"
           export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::$machine $distro"
+              echo "::group::bitbake $machine $distro"
               scripts/images-build --distro=$distro --machine=$machine --target="-k $IMAGES"
               echo "::endgroup::"
             done
