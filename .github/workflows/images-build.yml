@@ -76,11 +76,27 @@ jobs:
         run: |
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::fetch $machine $distro $IMAGES"
+              echo "::group::🟩fetch $machine $distro $IMAGES"
               scripts/images-build --machine=$machine --distro=$distro --target="-k --runall=fetch $IMAGES"
               echo "::endgroup::"
             done
           done
+      - name: cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-build-downloads
+          path: |
+            build/downloads/*.bz2
+            build/downloads/*.crate
+            build/downloads/*.gz
+            build/downloads/*.lz
+            build/downloads/*.py
+            build/downloads/*.tar
+            build/downloads/*.tbz2
+            build/downloads/*.tgz
+            build/downloads/*.txt
+            build/downloads/*.xz
+            build/downloads/*.zip
       - name: build
         run: |
           export BB_NO_NETWORK="1"
@@ -88,7 +104,7 @@ jobs:
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
           for machine in $MACHINES; do
             for distro in $DISTROS; do
-              echo "::group::bitbake $machine $distro $IMAGES"
+              echo "::group::🟩bitbake $machine $distro $IMAGES"
               scripts/images-build --machine=$machine --distro=$distro --target="-k $IMAGES"
               echo "::endgroup::"
             done
