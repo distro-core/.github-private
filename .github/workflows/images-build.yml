@@ -75,6 +75,8 @@ jobs:
           repo sync
       - name: scripts/images-build fetch
         run: |
+          export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
+          export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
           for distro in $DISTROS; do
             for machine in $MACHINES; do
               scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch $IMAGES"
@@ -82,6 +84,7 @@ jobs:
           done
       - name: scripts/images-build build
         run: |
+          export BB_NO_NETWORK="1"
           export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
           for distro in $DISTROS; do
