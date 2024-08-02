@@ -22,8 +22,12 @@ defaults:
   run:
     shell: bash
 
+# concurrency:
+#   group: ${{ github.name }}-${{ github.workflow }}-${{ github.head_ref }}
+#   cancel-in-progress: true
+
 jobs:
-  job-run:
+  job:
     runs-on: [ self-hosted, almalinux ]
     permissions:
       actions: write
@@ -34,7 +38,7 @@ jobs:
           cat >id_ed25519.pub <<EOF
           ${{ vars.PUBLIC_SSH_KEY }}
           EOF
-          cat >${HOME}/.ssh/id_ed25519 <<EOF
+          cat >id_ed25519 <<EOF
           ${{ secrets.PRIVATE_SSH_KEY }}
           EOF
           install -d -m 0700 ${HOME}/.ssh
