@@ -13,6 +13,7 @@ on:
 env:
   DISTROS: distro-core distro-full
   MACHINES: sbc-gene-bt06
+  IMAGES: distro-image distro-sdk-image
   MANIFEST_URI: git@github.com:distro-core/distro-manifest.git
   MANIFEST_BRANCH: main
   MANIFEST_NAME: distro-head-scarthgap.xml
@@ -63,9 +64,11 @@ jobs:
         run: |
           for distro in $DISTROS; do
             for machine in $MACHINES; do
-              scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
+              scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch $IMAGES"
             done
           done
-      # - name: scripts/images-build build
-      #   run: |
-      #     scripts/images-build --target="distro-image distro-sdk-image"
+      - name: scripts/images-build build
+        run: |
+          export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
+          export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
+          scripts/images-build --target="$IMAGES"
