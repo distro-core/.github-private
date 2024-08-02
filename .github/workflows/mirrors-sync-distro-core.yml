@@ -8,7 +8,7 @@ name: Scheduled Update Mirrors
 # secrets.PRIVATE_SSH_KEY
 
 # Runs on
-# [ self-hosted, almalinux ]
+# [ self-hosted, linux, almalinux ]
 
 on:
   workflow_dispatch:
@@ -28,13 +28,14 @@ defaults:
 
 jobs:
   job:
-    runs-on: [ self-hosted, almalinux ]
+    runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
     steps:
       ### PREPARE
       - name: install ssh keys
         run: |
+          echo "::add-mask::${{ vars.PUBLIC_SSH_KEY }}"
           cat >id_ed25519.pub <<EOF
           ${{ vars.PUBLIC_SSH_KEY }}
           EOF
@@ -53,7 +54,7 @@ jobs:
         run: |
           localpath=${HOME}/.local/bin
           mkdir -p $localpath
-          echo "LOCAL_PATH=$localpath" >> $GITHUB_ENV
+          echo "::add-mask::$localpath"
           echo "PATH=$localpath:$PATH" >> $GITHUB_ENV
 
       ### WORK
