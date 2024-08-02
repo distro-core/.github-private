@@ -49,10 +49,10 @@ jobs:
           touch ${HOME}/.ssh/config
           chmod 0644 ${HOME}/.ssh/config
           cat >${HOME}/.ssh/id_ed25519.pub <<EOF
-          ${{ vars.SSH_PUBLIC_KEY }}
+          $SSH_PUBLIC_KEY
           EOF
           cat >${HOME}/.ssh/id_ed25519 <<EOF
-          ${{ vars.SSH_PRIVATE_KEY }}
+          $SSH_PRIVATE_KEY
           EOF
           if ! grep -q -e '.ssh/id_ed25519$' ${HOME}/.ssh/config; then
             printf '\nHost *\n  IdentitiesOnly yes\n  IdentityFile %s\n\n%s' "${HOME}/.ssh/id_ed25519" "$(cat ${HOME}/.ssh/config)" >${HOME}/.ssh/config
@@ -87,38 +87,38 @@ jobs:
       #       exit 1
       #       ;;
       #     esac
-      - name: install repo tool
-        run: |
-          export PATH="${HOME}/.local/bin:${PATH}"
-          mkdir -p ${HOME}/.local/bin
-          echo "path: ${PATH}"
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
-          chmod a+rx ${HOME}/.local/bin/repo
-          repo || true
-      - name: repo init and sync
-        shell: bash
-        run: |
-          export PATH="${HOME}/.local/bin:${PATH}"
-          repo init -u $MANIFEST_URI -b $MANIFEST_BRANCH -m $MANIFEST_NAME --no-clone-bundle --no-repo-verify
-          # mkdir -p .repo/local_manifests
-          # cat >.repo/local_manifests/local_manifest.xml <<EOF
-          # <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
-          # <manifest>
-          # </manifest>
-          # EOF
-          repo sync
-      - name: scripts/images-build fetch
-        run: |
-          [ -n "$DISTROS" ] || ( echo "Required variable unset DISTROS" ; exit 1 )
-          [ -n "$MACHINES" ] || ( echo "Required variable unset MACHINES" ; exit 1 )
-          export PATH="${HOME}/.local/bin:${PATH}"
-          export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
-          export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
-          for distro in $DISTROS; do
-            for machine in $MACHINES; do
-              scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
-            done
-          done
+      # - name: install repo tool
+      #   run: |
+      #     export PATH="${HOME}/.local/bin:${PATH}"
+      #     mkdir -p ${HOME}/.local/bin
+      #     echo "path: ${PATH}"
+      #     curl https://storage.googleapis.com/git-repo-downloads/repo > ${HOME}/.local/bin/repo
+      #     chmod a+rx ${HOME}/.local/bin/repo
+      #     repo || true
+      # - name: repo init and sync
+      #   shell: bash
+      #   run: |
+      #     export PATH="${HOME}/.local/bin:${PATH}"
+      #     repo init -u $MANIFEST_URI -b $MANIFEST_BRANCH -m $MANIFEST_NAME --no-clone-bundle --no-repo-verify
+      #     # mkdir -p .repo/local_manifests
+      #     # cat >.repo/local_manifests/local_manifest.xml <<EOF
+      #     # <\?xml version=\"1.0\" encoding=\"UTF-8\"\?>
+      #     # <manifest>
+      #     # </manifest>
+      #     # EOF
+      #     repo sync
+      # - name: scripts/images-build fetch
+      #   run: |
+      #     [ -n "$DISTROS" ] || ( echo "Required variable unset DISTROS" ; exit 1 )
+      #     [ -n "$MACHINES" ] || ( echo "Required variable unset MACHINES" ; exit 1 )
+      #     export PATH="${HOME}/.local/bin:${PATH}"
+      #     export BB_NUMBER_THREADS="$(( $(nproc) * 0.50 ))"
+      #     export PARALLEL_MAKE="-j$(( $(nproc) * 0.50 ))"
+      #     for distro in $DISTROS; do
+      #       for machine in $MACHINES; do
+      #         scripts/images-build --distro=$distro --machine=$machine --target="--runall=fetch distro-image distro-sdk-image"
+      #       done
+      #     done
       # - name: scripts/images-build build
       #   run: |
       #     export PATH="${HOME}/.local/bin:${PATH}"
