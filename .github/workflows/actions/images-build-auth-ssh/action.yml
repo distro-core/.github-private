@@ -1,8 +1,11 @@
 name: Action Install host dependency
 description: Install host dependency
 
+# Requires
+# vars.PUBLIC_SSH_KEY
+# secrets.PRIVATE_SSH_KEY
+
 runs:
-  if: ${{ secrets.PRIVATE_SSH_KEY != '' }}
   using: "composite"
   steps:
     - name: Install local path
@@ -13,6 +16,7 @@ runs:
         mkdir -p $local_path
         echo "PATH=$local_path:$PATH" >> $GITHUB_ENV
       - name: Install ssh keys
+        if: ${{ secrets.PRIVATE_SSH_KEY != '' && vars.PUBLIC_SSH_KEY != '' }}
         shell: bash
         run: |
           cat >id_ed25519.pub <<EOF
