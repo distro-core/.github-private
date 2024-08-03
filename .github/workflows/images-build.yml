@@ -38,6 +38,11 @@ jobs:
       actions: write
     steps:
       ### PREPARE
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: main
+          ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
       - name: Install ssh keys
         run: |
           echo "::add-mask::$HOME"
@@ -55,6 +60,7 @@ jobs:
             install -D -m 0644 ssh_config $HOME/.ssh/config
           fi
           ssh git@github.com || true
+
       - name: Install host dependency
         uses: ./.github/actions/images-build-deps@main
       - name: Use repo init and repo sync
