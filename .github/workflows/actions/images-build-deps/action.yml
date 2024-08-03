@@ -7,7 +7,7 @@ runs:
     - name: Install local path
       shell: bash
       run: |
-          echo "::add-mask::$HOME"
+        echo "::add-mask::$HOME"
         local_path=$HOME/.local/bin
         mkdir -p $local_path
         echo "PATH=$local_path:$PATH" >> $GITHUB_ENV
@@ -40,7 +40,7 @@ runs:
         [ -n "$(command -v repo)" ] || exit 1
     - name: Install host dependency
       shell: bash
-      if: ${{ secrets.PRIVATE_PASSWORD_SUDO != '' && contains( 'dc1 dc2', runner.name ) }}
+      if: ${{ secrets.PRIVATE_PASSWORD_SUDO != '' }}
       run: |
         source /etc/os-release
         case $ID in
