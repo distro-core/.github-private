@@ -5,16 +5,19 @@ runs:
   using: "composite"
   steps:
     - name: Install local path
+      shell: bash
       run: |
         local_path=$HOME/.local/bin
         mkdir -p $local_path
         echo "PATH=$local_path:$PATH" >> $GITHUB_ENV
     - name: Install repo tool
+      shell: bash
       run: |
         curl https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
         chmod a+rx $HOME/.local/bin/repo
         [ -n "$(command -v repo)" ] || exit 1
     - name: Install host dependency
+      shell: bash
       run: |
         source /etc/os-release
         case $ID in
