@@ -60,7 +60,7 @@ jobs:
           fi
           ssh git@github.com || true
       - name: Install host dependency
-        uses: ./.github/workflows/actions/images-build-deps@main
+        uses: ./.github/workflows/actions/images-build-deps
       - name: Use repo init and repo sync
         shell: bash
         run: |
