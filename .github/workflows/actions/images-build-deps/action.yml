@@ -40,7 +40,7 @@ runs:
         [ -n "$(command -v repo)" ] || exit 1
     - name: Install host dependency
       shell: bash
-      if: ${{ secrets.PRIVATE_PASSWORD_SUDO != '' && contains( 'dc1 dc2', runner.name) }}
+      if: ${{ secrets.PRIVATE_PASSWORD_SUDO != '' && contains( 'dc1 dc2', runner.name ) }}
       run: |
         source /etc/os-release
         case $ID in
