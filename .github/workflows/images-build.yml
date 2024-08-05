@@ -17,13 +17,8 @@ defaults:
   run:
     shell: bash
 
-# concurrency:
-#   group: ${{ github.name }}-${{ github.workflow }}-${{ github.head_ref }}
-#   cancel-in-progress: true
-
 jobs:
-
-  job1:
+  job-1:
     runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
@@ -32,9 +27,51 @@ jobs:
       MANIFEST_BRANCH: main
       MANIFEST_NAME: distro-head-scarthgap.xml
     steps:
-      - name: Install host dependency
-        shell: bash
+      - shell: bash
         run: |
+          : set env NOW
+          echo "NOW=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+      - shell: bash
+        run: |
+          : set path
+          # sets PATH
+          echo "::add-mask::$HOME"
+          if [[ :$PATH: == *:"$HOME/.local/bin":* ]]; then
+            echo "PATH alredy contains $HOME/.local/bin"
+          else
+            localbin=$HOME/.local/bin
+            mkdir -p $localbin
+            echo "PATH=$localbin:$PATH" >> $GITHUB_ENV
+          fi
+      - shell: bash
+        run: |
+          : install ssh keys
+          workflows_id_ssh=workflows-tmp-id-ssh
+          cat >${workflows_id_ssh} <<EOF
+          ${{ secrets.PRIVATE_SSH_KEY }}
+          EOF
+          cat >workflows-tmp-ssh-config <<EOF
+          Host *
+            IdentitiesOnly yes
+            IdentityFile $HOME/.ssh/${workflows_id_ssh}
+          EOF
+          install -d -m 0700 $HOME/.ssh
+          install -D -m 0600 ${workflows_id_ssh} $HOME/.ssh/${workflows_id_ssh}
+          install -D -m 0644 workflows-tmp-ssh-config $HOME/.ssh/config
+          # ssh git@github.com || true
+      - shell: bash
+        run: |
+          : install git settings
+          git config --global http.sslVerify true
+      - shell: bash
+        run: |
+          : install repo tool
+          curl https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
+          chmod a+rx $HOME/.local/bin/repo
+          [ -n "$(command -v repo)" ] || exit 1
+      - shell: bash
+        run: |
+          : install host dependency
           source /etc/os-release
           case $ID in
           almalinux*)
@@ -85,47 +122,13 @@ jobs:
             exit 1
             ;;
           esac
-      - name: Install local path
-        shell: bash
+      - shell: bash
         run: |
-          echo "::add-mask::$HOME"
-          local_path=$HOME/.local/bin
-          mkdir -p $local_path
-          echo "PATH=$local_path:$PATH" >> $GITHUB_ENV
-      - name: Install repo tool
-        shell: bash
-        run: |
-          curl https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
-          chmod a+rx $HOME/.local/bin/repo
-          [ -n "$(command -v repo)" ] || exit 1
-      - name: Install ssh keys
-        shell: bash
-        run: |
-          cat >id_ed25519.pub <<EOF
-          ${{ vars.PUBLIC_SSH_KEY }}
-          EOF
-          cat >id_ed25519 <<EOF
-          ${{ secrets.PRIVATE_SSH_KEY }}
-          EOF
-          cat >ssh_config <<EOF
-          Host github.com
-            RequestTTY no
-            IdentitiesOnly yes
-            IdentityFile $HOME/.ssh/id_ed25519
-          EOF
-          install -d -m 0700 $HOME/.ssh
-          install -D -m 0600 id_ed25519 $HOME/.ssh/id_ed25519
-          install -D -m 0644 id_ed25519.pub $HOME/.ssh/id_ed25519.pub
-          install -D -m 0644 ssh_config $HOME/.ssh/config
-          ssh git@github.com || true
-      - name: Use repo init and repo sync
-        shell: bash
-        run: |
+          : repo init and sync
           repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
           repo sync
-
-  job2:
-    needs: job1
+  job-2:
+    needs: job-1
     runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
@@ -136,15 +139,16 @@ jobs:
         DISTRO: [ distro-core distro-full ]
         MACHINE: [ sbc-gene-bt06 ]
     steps:
-      - name: Bitbake fetch
-        shell: bash
+      - shell: bash
         run: |
+          : bitbake fetch
           echo "${{ matrix.MACHINE }} ${{ matrix.DISTRO }} ${{ env.IMAGES }}"
           scripts/images-build --machine=${{ matrix.MACHINE }} --distro=${{ matrix.DISTRO }} --target="-k --runall=fetch ${{ env.IMAGES }}"
       - name: Bitbake build
         shell: bash
         run: |
-          # $DISTRO $MACHINE $IMAGE
+          : bitbake build
+          # ${{ matrix.DISTRO }} ${{ matrix.MACHINE }} $IMAGE
           # export BB_NO_NETWORK="1"
           export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
           export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
