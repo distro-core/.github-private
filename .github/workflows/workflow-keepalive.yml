@@ -20,7 +20,7 @@ jobs:
   workflow-keepalive:
     runs-on: ubuntu-latest
     permissions:
-      actions: read
+      actions: write
     steps:
       - name: Action gh-workflow-keepalive
         uses: distro-core/gh-workflow-keepalive@v1
