@@ -23,4 +23,4 @@ jobs:
       actions: write
     steps:
       - name: Action gh-workflow-keepalive
-        uses: distro-core/gh-workflow-keepalive@v1
+        uses: distro-core/gh-workflow-keepalive@v1.2.1

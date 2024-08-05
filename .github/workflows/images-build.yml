@@ -5,10 +5,6 @@ name: Images Build
 # secrets.PRIVATE_SSH_KEY be defined and valid for successful sync to
 # the repositories referenced in the manifest.
 
-# Requires
-# vars.PUBLIC_SSH_KEY
-# secrets.PRIVATE_SSH_KEY
-
 # Runs on
 # [ self-hosted, linux, almalinux ]
 
@@ -16,9 +12,6 @@ on:
   workflow_dispatch:
 
 env:
-  DISTROS: distro-core distro-full
-  MACHINES: sbc-gene-bt06
-  IMAGES: distro-image distro-sdk-image
   MANIFEST_URI: git@github.com:distro-core/distro-manifest.git
   MANIFEST_BRANCH: main
   MANIFEST_NAME: distro-head-scarthgap.xml
@@ -36,12 +29,12 @@ jobs:
     runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
+    strategy:
+      matrix:
+        DISTRO: [ distro-core distro-full ]
+        MACHINE: [ sbc-gene-bt06 ]
+        IMAGE:  [ distro-image distro-sdk-image ]
     steps:
-      ### PREPARE
-      # - uses: actions/checkout@v4
-      #   with:
-      #     repository: ${{ github.repository }}
-      #     ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
       - name: Install host dependency
         uses: distro-core/gh-yocto-host-deps@main
       - name: Use repo init and repo sync
@@ -50,14 +43,10 @@ jobs:
           repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
           repo sync
       - name: Bitbake fetch
+        shell: bash
         run: |
-          for machine in $MACHINES; do
-            for distro in $DISTROS; do
-              echo "::group::Bitbake fetch $machine $distro $IMAGES"
-              scripts/images-build --clean-sstate --machine=$machine --distro=$distro --target="-k --runall=fetch $IMAGES"
-              echo "::endgroup::"
-            done
-          done
+          # $DISTRO $MACHINE $IMAGE
+          scripts/images-build --clean-sstate --machine=$MACHINE --distro=$DISTRO --target="-k --runall=fetch $IMAGE"
       # - name: Bitbake build
       #   run: |
       #     # export BB_NO_NETWORK="1"
