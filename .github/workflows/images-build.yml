@@ -43,7 +43,6 @@ jobs:
           mkdir -p $local_path
           echo "PATH=$local_path:$PATH" >> $GITHUB_ENV
       - name: Install ssh keys
-        if: ${{ secrets.PRIVATE_SSH_KEY != '' && vars.PUBLIC_SSH_KEY != '' }}
         shell: bash
         run: |
           cat >id_ed25519.pub <<EOF
@@ -71,7 +70,6 @@ jobs:
           [ -n "$(command -v repo)" ] || exit 1
       - name: Install host dependency
         shell: bash
-        if: ${{ secrets.PRIVATE_PASSWORD_SUDO != '' }}
         run: |
           source /etc/os-release
           case $ID in
