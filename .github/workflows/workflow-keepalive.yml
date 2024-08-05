@@ -6,10 +6,9 @@ name: Scheduled Workflow Keepalive
 # 60 days.
 
 # Requires
-# distro-core/gh-workflow-keepalive@v1
+# liskin/gh-workflow-keepalive@v1.2.1       Github Action
 
-# Runs on
-# ubuntu-latest
+# runs-on: ubuntu-latest
 
 on:
   workflow_dispatch:
@@ -17,10 +16,9 @@ on:
     - cron: '15 1 */15 * *'
 
 jobs:
-  workflow-keepalive:
+  job-1:
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - name: Action gh-workflow-keepalive
-        uses: distro-core/gh-workflow-keepalive@v1.2.1
+      - uses: liskin/gh-workflow-keepalive@v1.2.1
