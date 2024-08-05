@@ -118,6 +118,7 @@ jobs:
         repo sync
 
   job2:
+    needs: job1
     runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
