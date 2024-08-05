@@ -32,7 +32,6 @@ jobs:
       MANIFEST_BRANCH: main
       MANIFEST_NAME: distro-head-scarthgap.xml
     steps:
-
       - name: Install host dependency
         shell: bash
         run: |
@@ -137,17 +136,17 @@ jobs:
         DISTRO: [ distro-core distro-full ]
         MACHINE: [ sbc-gene-bt06 ]
     steps:
-
       - name: Bitbake fetch
         shell: bash
         run: |
-          echo "fetch $DISTRO $MACHINE $IMAGES"
-          scripts/images-build --clean-sstate --machine=$MACHINE --distro=$DISTRO --target="-k --runall=fetch $IMAGES"
-      # - name: Bitbake build
-      #   shell: bash
-      #   run: |
-      #     # $DISTRO $MACHINE $IMAGE
-      #     # export BB_NO_NETWORK="1"
-      #     export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
-      #     export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
-      #     scripts/images-build --clean-sstate --machine=$MACHINE --distro=$DISTRO --target="-k $IMAGE"
+          echo "${{ matrix.MACHINE }} ${{ matrix.DISTRO }} ${{ env.IMAGES }}"
+          scripts/images-build --machine=${{ matrix.MACHINE }} --distro=${{ matrix.DISTRO }} --target="-k --runall=fetch ${{ env.IMAGES }}"
+      - name: Bitbake build
+        shell: bash
+        run: |
+          # $DISTRO $MACHINE $IMAGE
+          # export BB_NO_NETWORK="1"
+          export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
+          export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
+          echo "${{ matrix.MACHINE }} ${{ matrix.DISTRO }} ${{ env.IMAGES }}"
+          scripts/images-build --machine=${{ matrix.MACHINE }} --distro=${{ matrix.DISTRO }} --target="-k ${{ env.IMAGES }}"
