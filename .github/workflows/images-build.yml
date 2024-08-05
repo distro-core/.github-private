@@ -38,29 +38,17 @@ jobs:
       actions: write
     steps:
       ### PREPARE
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
-
+      # - uses: actions/checkout@v4
+      #   with:
+      #     repository: ${{ github.repository }}
+      #     ssh-key: ${{ secrets.PRIVATE_SSH_KEY }}
       - name: Install host dependency
-        uses: ./.github/workflows/actions/images-build-deps
+        uses: distro-core/gh-yocto-host-deps@main
       - name: Use repo init and repo sync
         shell: bash
         run: |
           repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
           repo sync
-      - name: Save build downloads
-        uses: actions/cache/save@v4
-        with:
-          key: ${{ runner.os }}-repo
-          path: |
-            .gitignore
-            .repo
-            .vscode
-            README*
-            layers
-            scripts
       - name: Bitbake fetch
         run: |
           for machine in $MACHINES; do
@@ -70,37 +58,15 @@ jobs:
               echo "::endgroup::"
             done
           done
-      - name: Save build downloads
-        uses: actions/cache/save@v4
-        with:
-          key: ${{ runner.os }}-build-downloads
-          path: |
-            build/downloads/*.bz2
-            build/downloads/*.crate
-            build/downloads/*.gz
-            build/downloads/*.lz
-            build/downloads/*.py
-            build/downloads/*.tar
-            build/downloads/*.tbz2
-            build/downloads/*.tgz
-            build/downloads/*.txt
-            build/downloads/*.xz
-            build/downloads/*.zip
-      - name: Bitbake build
-        run: |
-          # export BB_NO_NETWORK="1"
-          export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
-          export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
-          for machine in $MACHINES; do
-            for distro in $DISTROS; do
-              echo "::group::Bitbake build $machine $distro $IMAGES"
-              scripts/images-build --machine=$machine --distro=$distro --target="-k $IMAGES"
-              echo "::endgroup::"
-            done
-          done
-      - name: Save build sstate-cache
-        uses: actions/cache/save@v4
-        with:
-          key: ${{ runner.os }}-build-sstate-cache
-          path: |
-            build/sstate-cache
+      # - name: Bitbake build
+      #   run: |
+      #     # export BB_NO_NETWORK="1"
+      #     export BB_NUMBER_THREADS=$(( $(nproc) * 2 / 5 ))
+      #     export PARALLEL_MAKE=-j$(( $(nproc) * 2 / 5 ))
+      #     for machine in $MACHINES; do
+      #       for distro in $DISTROS; do
+      #         echo "::group::Bitbake build $machine $distro $IMAGES"
+      #         scripts/images-build --machine=$machine --distro=$distro --target="-k $IMAGES"
+      #         echo "::endgroup::"
+      #       done
+      #     done
