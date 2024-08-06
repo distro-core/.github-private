@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   job-1:
-    runs-on: [ self-hosted, dc2 ]
+    runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
     env:
