@@ -20,10 +20,6 @@ jobs:
     runs-on: [ self-hosted, linux, almalinux ]
     permissions:
       actions: write
-    env:
-      MANIFEST_URI: git@github.com:distro-core/distro-manifest.git
-      MANIFEST_BRANCH: main
-      MANIFEST_NAME: distro-head-scarthgap.xml
     steps:
       - shell: bash
         run: |
@@ -120,11 +116,11 @@ jobs:
             exit 1
             ;;
           esac
-      - shell: bash
-        run: |
-          : repo init and sync
-          repo init --manifest-url=$MANIFEST_URI --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle --no-repo-verify
-          repo sync
+          - shell: bash
+          run: |
+            : repo init and sync
+            repo init --manifest-url=${{ vars.MANIFEST_URI }} --manifest-branch=${{ vars.MANIFEST_BRANCH }} --manifest-name=${{ vars.MANIFEST_NAME }} --no-clone-bundle --no-repo-verify
+            repo sync
   job-2:
     needs: job-1
     runs-on: [ self-hosted, linux, almalinux ]
@@ -147,4 +143,4 @@ jobs:
         run: |
           : bitbake fetch
           echo "${{ matrix.MACHINE }} ${{ matrix.DISTRO }} ${{ matrix.IMAGE }}"
-          scripts/images-build --machine=${{ matrix.MACHINE }} --distro=${{ matrix.DISTRO }} --target="-k --runall=fetch ${{ matrix.IMAGE }}"
+          scripts/images-build --machine=${{ matrix.MACHINE }} --distro=${{ matrix.DISTRO }} --target="--runall=fetch ${{ matrix.IMAGE }}"
