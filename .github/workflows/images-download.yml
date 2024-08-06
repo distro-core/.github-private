@@ -139,8 +139,6 @@ jobs:
           - com-cexpress-bt
           - com-cexpress-sl
           - sbc-gene-bt06
-          - sbc-raspberrypi5
-          - sbc-xavier-nx-devkit
         IMAGE:
           - distro-image
           - distro-sdk-image
