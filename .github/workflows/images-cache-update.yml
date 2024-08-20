@@ -1,0 +1,109 @@
+name: Scheduled Bitbake Cache Update
+
+# An action to perform scheduled updates to caches used by
+# the bitbake process. Caches created for downloads.
+
+# runs-on: [ self-hosted, almalinux ]
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 2 */2 * *'
+
+jobs:
+
+  job-execute:
+    runs-on: [ self-hosted, almalinux ]
+    permissions:
+      actions: write
+    strategy:
+      max-parallel: 1
+      matrix:
+        DISTRO:
+          - distro-core
+          - distro-core-gui
+        MACHINE:
+          - com-cexpress-bt
+          - com-cexpress-sl
+          - sbc-gene-bt05
+        IMAGES:
+          - distro-image distro-sdk-image
+    env:
+      MANIFEST_URL: https://github.com/distro-core/distro-manifest.git
+      MANIFEST_BRANCH: main
+      MANIFEST_NAME: distro-head-scarthgap.xml
+    steps:
+      - shell: bash
+        run: |
+          echo "::notice::environment"
+          echo "MACHINE=${{ matrix.MACHINE }}" >>$GITHUB_ENV
+          echo "DISTRO=${{ matrix.DISTRO }}" >>$GITHUB_ENV
+          echo "IMAGES=${{ matrix.IMAGES }}" >>$GITHUB_ENV
+          echo "MANIFEST_URL=${{ env.MANIFEST_URL }}" >>$GITHUB_ENV
+          echo "MANIFEST_BRANCH=${{ env.MANIFEST_BRANCH }}" >>$GITHUB_ENV
+          echo "MANIFEST_NAME=${{ env.MANIFEST_NAME }}" >>$GITHUB_ENV
+          echo "DL_DIR=$GITHUB_WORKSPACE/build/downloads" >>$GITHUB_ENV
+          echo "SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache" >>$GITHUB_ENV
+          echo "DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/${{ matrix.MACHINE }}" >>$GITHUB_ENV
+          echo "TOP_DIR=$GITHUB_WORKSPACE/build/${{ matrix.MACHINE }}" >>$GITHUB_ENV
+          echo "TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/${{ matrix.DISTRO }}" >>$GITHUB_ENV
+      - shell: bash
+        run: |
+          echo "::notice::local path"
+          echo "::add-mask::$HOME"
+          if [[ :$PATH: == *:"$HOME/.local/bin":* ]]; then
+            echo "PATH alredy contains $HOME/.local/bin"
+          else
+            localbin=$HOME/.local/bin
+            mkdir -p $localbin
+            echo "PATH=$localbin:$PATH" >> $GITHUB_ENV
+          fi
+      - shell: bash
+        run: |
+          echo "::notice::install git settings"
+          git config --global http.sslVerify true
+      - shell: bash
+        run: |
+          echo "::notice::install repo tool"
+          curl --silent https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
+          chmod a+rx $HOME/.local/bin/repo
+          if [ -z "$(command -v repo)" ]; then
+            echo "::error::repo not found"
+            exit 1
+          fi
+      - shell: bash
+        run: |
+          echo "::notice::repo init and sync"
+          repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
+          repo sync
+      - shell: bash
+        run: |
+          echo "::notice::bitbake cache"
+          mkdir -p $DL_DIR
+          mkdir -p $SSTATE_CACHE
+          mkdir -p $DEPLOY_DIR
+      - uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          key: downloads
+          path: |
+            build/downloads
+      - shell: bash
+        continue-on-error: false
+        run: |
+          echo "::notice::bitbake fetch"
+          rm -fr $TOP_DIR
+          {
+          TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $GITHUB_WORKSPACE/build/$MACHINE
+          } >/dev/null
+          bitbake --runall=fetch $IMAGES
+      - uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          key: downloads
+          path: |
+            build/downloads
+            !build/downloads/git2/**
+            !build/downloads/*.done
+            !build/downloads/tmp*
+            !build/downloads/*tmp
