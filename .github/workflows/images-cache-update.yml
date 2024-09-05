@@ -1,21 +1,18 @@
-name: Scheduled Bitbake Cache Update
+name: Scheduled Refresh Bitbake Downloads
 
-# An action to perform scheduled updates to caches used by
-# the bitbake process. Caches created for downloads.
-
-# runs-on: [ self-hosted, almalinux ]
+# An action to perform a initialization of build/downloads
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '15 2 */2 * *'
 
 jobs:
 
   job-execute:
-    runs-on: [ self-hosted, almalinux ]
+    name: ${{ matrix.SRC_URI }}
+    runs-on: [ self-hosted, debian ]
     permissions:
       actions: write
+    continue-on-error: true
     strategy:
       max-parallel: 1
       matrix:
@@ -35,7 +32,7 @@ jobs:
     steps:
       - shell: bash
         run: |
-          echo "::notice::environment"
+          echo "::debug::environment"
           echo "MACHINE=${{ matrix.MACHINE }}" >>$GITHUB_ENV
           echo "DISTRO=${{ matrix.DISTRO }}" >>$GITHUB_ENV
           echo "IMAGES=${{ matrix.IMAGES }}" >>$GITHUB_ENV
@@ -47,60 +44,42 @@ jobs:
           echo "DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/${{ matrix.MACHINE }}" >>$GITHUB_ENV
           echo "TOP_DIR=$GITHUB_WORKSPACE/build/${{ matrix.MACHINE }}" >>$GITHUB_ENV
           echo "TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/${{ matrix.DISTRO }}" >>$GITHUB_ENV
-      - shell: bash
-        run: |
-          echo "::notice::local path"
-          echo "::add-mask::$HOME"
-          if [[ :$PATH: == *:"$HOME/.local/bin":* ]]; then
-            echo "PATH alredy contains $HOME/.local/bin"
-          else
-            localbin=$HOME/.local/bin
-            mkdir -p $localbin
-            echo "PATH=$localbin:$PATH" >> $GITHUB_ENV
-          fi
-      - shell: bash
-        run: |
-          echo "::notice::install git settings"
+          echo "::debug::install git settings"
           git config --global http.sslVerify true
-      - shell: bash
-        run: |
-          echo "::notice::install repo tool"
+          echo "::debug::install repo tool"
           curl --silent https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
           chmod a+rx $HOME/.local/bin/repo
           if [ -z "$(command -v repo)" ]; then
             echo "::error::repo not found"
             exit 1
           fi
-      - shell: bash
-        run: |
-          echo "::notice::repo init and sync"
-          repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
-          repo sync
-      - shell: bash
-        run: |
-          echo "::notice::bitbake cache"
-          mkdir -p $DL_DIR
-          mkdir -p $SSTATE_CACHE
-          mkdir -p $DEPLOY_DIR
       - uses: actions/cache/restore@v4
         continue-on-error: true
         with:
-          key: downloads
+          key: downloads-$DISTRO
           path: |
             build/downloads
-      - shell: bash
-        continue-on-error: false
-        run: |
-          echo "::notice::bitbake fetch"
-          rm -fr $TOP_DIR
-          {
-          TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $GITHUB_WORKSPACE/build/$MACHINE
-          } >/dev/null
-          bitbake --runall=fetch $IMAGES
+      - uses: distro-core/gh-actions-retry@v3
+        with:
+          timeout_minutes: 10
+          retry_wait_seconds: 120
+          max_attempts: 3
+          retry_on: error
+          shell: bash
+          command: |
+            echo "::debug::repo init and sync"
+            repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
+            repo sync
+            echo "::debug::oe-init-build-env"
+            {
+              TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $GITHUB_WORKSPACE/build/$MACHINE
+            } >/dev/null
+            bitbake --runall=fetch $IMAGES
+            echo "::notice::bitbake $DISTRO $MACHINE $IMAGES"
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:
-          key: downloads
+          key: downloads-$DISTRO
           path: |
             build/downloads
             !build/downloads/git2/**
