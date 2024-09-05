@@ -7,105 +7,100 @@ on:
 
 jobs:
 
-  job-execute:
-    name: bitbake ${{ matrix.DISTRO }} ${{ matrix.MACHINE }} ${{ matrix.IMAGES }}
+  get-runner:
+    if: ${{ always() }}
     runs-on: [ self-hosted, debian ]
+    outputs:
+      RUNNER: ${{ runner.name }}
+    steps:
+      - run: echo "::notice::selected runner ${{ runner.name }}"
+
+  job-init:
+    needs: [ get-runner ]
+    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
     permissions:
       actions: write
-    continue-on-error: true
-    strategy:
-      max-parallel: 1
-      matrix:
-        DISTRO:
-          - distro-core
-          - distro-core-gui
-        MACHINE:
-          - com-cexpress-bt
-          - com-cexpress-sl
-          - sbc-gene-bt05
-          - sbc-raspberrypi5
-          - sbc-xavier-nx-devkit
-        IMAGES:
-          - distro-image distro-sdk-image
-        MANIFEST_URL:
-          - https://github.com/distro-core/distro-manifest.git
-        MANIFEST_BRANCH:
-          - main
-        MANIFEST_NAME:
-          - distro-head-scarthgap.xml
+    continue-on-error: false
     steps:
       - shell: bash
         run: |
           echo "::debug::local path"
           echo "::add-mask::$HOME"
           if [[ :$PATH: == *:"$HOME/.local/bin":* ]]; then
-            echo "::debug::PATH alredy contains $HOME/.local/bin"
+            echo "::notice::PATH alredy contains $HOME/.local/bin"
           else
             localbin=$HOME/.local/bin
             mkdir -p $localbin
             echo "PATH=$localbin:$PATH" >> $GITHUB_ENV
           fi
-          echo "::debug::environment"
-          echo "MACHINE=${{ matrix.MACHINE }}" >>$GITHUB_ENV
-          echo "DISTRO=${{ matrix.DISTRO }}" >>$GITHUB_ENV
-          echo "IMAGES=${{ matrix.IMAGES }}" >>$GITHUB_ENV
-          echo "MANIFEST_URL=${{ matrix.MANIFEST_URL }}" >>$GITHUB_ENV
-          echo "MANIFEST_BRANCH=${{ matrix.MANIFEST_BRANCH }}" >>$GITHUB_ENV
-          echo "MANIFEST_NAME=${{ matrix.MANIFEST_NAME }}" >>$GITHUB_ENV
-          echo "DL_DIR=$GITHUB_WORKSPACE/build/downloads" >>$GITHUB_ENV
-          echo "SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache" >>$GITHUB_ENV
-          echo "DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/${{ matrix.MACHINE }}" >>$GITHUB_ENV
-          echo "TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/${{ matrix.DISTRO }}" >>$GITHUB_ENV
           echo "::debug::install git settings"
+          [[ -n "$(command -v git)" ]] || (echo "::error::git not found"; exit 1)
           git config --global http.sslVerify true
-      - uses: actions/cache/restore@v4
-        continue-on-error: true
+
+  job-sync:
+    needs: [ get-runner, job-init ]
+    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
+    permissions:
+      actions: write
+    continue-on-error: false
+    steps:
+      - shell: bash
+        run: |
+          echo "::debug::environment"
+          echo "MANIFEST_URL=https://github.com/distro-core/distro-manifest.git" >>$GITHUB_ENV
+          echo "MANIFEST_BRANCH=main" >>$GITHUB_ENV
+          echo "MANIFEST_NAME=distro-head-scarthgap.xml" >>$GITHUB_ENV
+          echo "::debug::repo init and sync"
+          [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
+          repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
+          repo sync
+
+  job-bitbake:
+    needs: [ get-runner, job-sync ]
+    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
+    permissions:
+      actions: write
+    continue-on-error: false
+    steps:
+      - shell: bash
+        run: |
+          for distro in distro-core distro-core-gui; do
+            for machine in com-cexpress-bt com-cexpress-sl sbc-gene-bt05 sbc-raspberrypi5 sbc-xavier-nx-devkit; do
+              export DISTRO=$distro
+              export MACHINE=$machine
+              export BUILD_DIR=$GITHUB_WORKSPACE/build/$MACHINE
+              export DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/$MACHINE
+              export DL_DIR=$GITHUB_WORKSPACE/build/downloads
+              export SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache
+              TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/$distro
+              rm -fr $BUILD_DIR $DEPLOY_DIR
+              mkdir -p $BUILD_DIR $DEPLOY_DIR
+              echo "::notice::oe-init-build-env $distro $machine"
+              TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $BUILD_DIR
+              bitbake --runall=fetch distro-image distro-sdk-image
+              cd $GITHUB_WORKSPACE
+              rm -fr $BUILD_DIR $DEPLOY_DIR
+            done
+          done
+          echo "::notice::complete"
+
+  job-artifacts:
+    needs: [ get-runner, job-bitbake ]
+    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
+    permissions:
+      actions: write
+    continue-on-error: false
+    steps:
+      - uses: actions/artifacts-upload@v4
         with:
-          key: build-downloads
+          name: build-downloads
+          compression-level: 9
+          if-no-files-found: error
+          overwrite: true
           path: |
-            build/downloads
-      # - uses: actions/cache/restore@v4
-      #   continue-on-error: true
-      #   with:
-      #     key: build-sstate-cache
-      #     path: |
-      #       build/sstate-cache
-      - uses: distro-core/gh-actions-retry@v3
-        with:
-          timeout_minutes: 60
-          retry_wait_seconds: 120
-          max_attempts: 2
-          retry_on: error
-          shell: bash
-          command: |
-            echo "::debug::repo init and sync"
-            [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
-            repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
-            repo sync
-            echo "::debug::oe-init-build-env"
-            {
-              TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $GITHUB_WORKSPACE/build/$MACHINE
-            } >/dev/null
-            bitbake --runall=fetch $IMAGES
-            echo "::notice::complete $DISTRO $MACHINE $IMAGES"
-      - uses: actions/cache/save@v4
-        continue-on-error: true
-        with:
-          key: build-downloads
-          path: |
-            build/downloads
-            !build/downloads/git2/**
+            build/downloads/*
+            !build/downloads/git2/
             !build/downloads/*.done
             !build/downloads/*.lock
             !build/downloads/tmp*
             !build/downloads/*tmp
-      # - uses: actions/cache/save@v4
-      #   continue-on-error: true
-      #   with:
-      #     key: build-downloads
-      #     path: |
-      #       build/sstate-cache
-      #       !build/sstate-cache/**/*.done
-      #       !build/sstate-cache/**/*.lock
-      #       !build/sstate-cache/**/tmp*
-      #       !build/sstate-cache/**/*tmp
