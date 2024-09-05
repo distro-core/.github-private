@@ -8,7 +8,7 @@ on:
 jobs:
 
   job-execute:
-    name: ${{ matrix.SRC_URI }}
+    name: bitbake ${{ matrix.DISTRO }} ${{ matrix.MACHINE }} ${{ matrix.IMAGES }}
     runs-on: [ self-hosted, debian ]
     permissions:
       actions: write
@@ -23,22 +23,35 @@ jobs:
           - com-cexpress-bt
           - com-cexpress-sl
           - sbc-gene-bt05
+          - sbc-raspberrypi5
+          - sbc-xavier-nx-devkit
         IMAGES:
           - distro-image distro-sdk-image
-    env:
-      MANIFEST_URL: https://github.com/distro-core/distro-manifest.git
-      MANIFEST_BRANCH: main
-      MANIFEST_NAME: distro-head-scarthgap.xml
+        MANIFEST_URL:
+          - https://github.com/distro-core/distro-manifest.git
+        MANIFEST_BRANCH:
+          - main
+        MANIFEST_NAME:
+          - distro-head-scarthgap.xml
     steps:
       - shell: bash
         run: |
+          echo "::debug::local path"
+          echo "::add-mask::$HOME"
+          if [[ :$PATH: == *:"$HOME/.local/bin":* ]]; then
+            echo "::debug::PATH alredy contains $HOME/.local/bin"
+          else
+            localbin=$HOME/.local/bin
+            mkdir -p $localbin
+            echo "PATH=$localbin:$PATH" >> $GITHUB_ENV
+          fi
           echo "::debug::environment"
           echo "MACHINE=${{ matrix.MACHINE }}" >>$GITHUB_ENV
           echo "DISTRO=${{ matrix.DISTRO }}" >>$GITHUB_ENV
           echo "IMAGES=${{ matrix.IMAGES }}" >>$GITHUB_ENV
-          echo "MANIFEST_URL=${{ env.MANIFEST_URL }}" >>$GITHUB_ENV
-          echo "MANIFEST_BRANCH=${{ env.MANIFEST_BRANCH }}" >>$GITHUB_ENV
-          echo "MANIFEST_NAME=${{ env.MANIFEST_NAME }}" >>$GITHUB_ENV
+          echo "MANIFEST_URL=${{ matrix.MANIFEST_URL }}" >>$GITHUB_ENV
+          echo "MANIFEST_BRANCH=${{ matrix.MANIFEST_BRANCH }}" >>$GITHUB_ENV
+          echo "MANIFEST_NAME=${{ matrix.MANIFEST_NAME }}" >>$GITHUB_ENV
           echo "DL_DIR=$GITHUB_WORKSPACE/build/downloads" >>$GITHUB_ENV
           echo "SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache" >>$GITHUB_ENV
           echo "DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/${{ matrix.MACHINE }}" >>$GITHUB_ENV
@@ -58,7 +71,7 @@ jobs:
         with:
           key: downloads-$DISTRO
           path: |
-            build/downloads
+            $DL_DIR
       - uses: distro-core/gh-actions-retry@v3
         with:
           timeout_minutes: 10
@@ -75,14 +88,15 @@ jobs:
               TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $GITHUB_WORKSPACE/build/$MACHINE
             } >/dev/null
             bitbake --runall=fetch $IMAGES
-            echo "::notice::bitbake $DISTRO $MACHINE $IMAGES"
+            echo "::notice::complete $DISTRO $MACHINE $IMAGES"
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:
           key: downloads-$DISTRO
           path: |
-            build/downloads
-            !build/downloads/git2/**
-            !build/downloads/*.done
-            !build/downloads/tmp*
-            !build/downloads/*tmp
+            $DL_DIR
+            !$DL_DIR/git2/**
+            !$DL_DIR/*.done
+            !$DL_DIR/*.lock
+            !$DL_DIR/tmp*
+            !$DL_DIR/*tmp
