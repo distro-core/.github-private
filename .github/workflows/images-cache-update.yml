@@ -55,32 +55,31 @@ jobs:
           echo "DL_DIR=$GITHUB_WORKSPACE/build/downloads" >>$GITHUB_ENV
           echo "SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache" >>$GITHUB_ENV
           echo "DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/${{ matrix.MACHINE }}" >>$GITHUB_ENV
-          echo "TOP_DIR=$GITHUB_WORKSPACE/build/${{ matrix.MACHINE }}" >>$GITHUB_ENV
           echo "TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/${{ matrix.DISTRO }}" >>$GITHUB_ENV
           echo "::debug::install git settings"
           git config --global http.sslVerify true
-          echo "::debug::install repo tool"
-          curl --silent https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
-          chmod a+rx $HOME/.local/bin/repo
-          if [ -z "$(command -v repo)" ]; then
-            echo "::error::repo not found"
-            exit 1
-          fi
       - uses: actions/cache/restore@v4
         continue-on-error: true
         with:
-          key: downloads-$DISTRO
+          key: build-downloads
           path: |
-            $DL_DIR
+            build/downloads
+      # - uses: actions/cache/restore@v4
+      #   continue-on-error: true
+      #   with:
+      #     key: build-sstate-cache
+      #     path: |
+      #       build/sstate-cache
       - uses: distro-core/gh-actions-retry@v3
         with:
-          timeout_minutes: 10
+          timeout_minutes: 60
           retry_wait_seconds: 120
-          max_attempts: 3
+          max_attempts: 2
           retry_on: error
           shell: bash
           command: |
             echo "::debug::repo init and sync"
+            [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
             repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
             repo sync
             echo "::debug::oe-init-build-env"
@@ -92,11 +91,21 @@ jobs:
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:
-          key: downloads-$DISTRO
+          key: build-downloads
           path: |
-            $DL_DIR
-            !$DL_DIR/git2/**
-            !$DL_DIR/*.done
-            !$DL_DIR/*.lock
-            !$DL_DIR/tmp*
-            !$DL_DIR/*tmp
+            build/downloads
+            !build/downloads/git2/**
+            !build/downloads/*.done
+            !build/downloads/*.lock
+            !build/downloads/tmp*
+            !build/downloads/*tmp
+      # - uses: actions/cache/save@v4
+      #   continue-on-error: true
+      #   with:
+      #     key: build-downloads
+      #     path: |
+      #       build/sstate-cache
+      #       !build/sstate-cache/**/*.done
+      #       !build/sstate-cache/**/*.lock
+      #       !build/sstate-cache/**/tmp*
+      #       !build/sstate-cache/**/*tmp
