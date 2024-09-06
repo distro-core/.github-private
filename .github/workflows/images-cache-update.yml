@@ -114,24 +114,19 @@ jobs:
           # bitbake distro-image distro-sdk-image
           cd $GITHUB_WORKSPACE
           rm -fr $BUILD_DIR $DEPLOY_DIR
+          tar -czf --exclude='git2/' --exclude='*.done' --exclude='*.lock' --exclude='tmp*' --exclude='*tmp' downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}.tar.gz ./build/downloads
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}
-          compression-level: 9
           if-no-files-found: error
           overwrite: true
           path: |
-            build/downloads/*
-            !build/downloads/git2/
-            !build/downloads/*.done
-            !build/downloads/*.lock
-            !build/downloads/tmp*
-            !build/downloads/*tmp
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          # repository: distro-core/distro-manifest
-          name: downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}
-          path: |
-            build/downloads/*
+            downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}.tar.gz
+      # - name: Download Artifact
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     # repository: distro-core/distro-manifest
+      #     name: downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}
+      #     path: |
+      #       build/downloads/*
