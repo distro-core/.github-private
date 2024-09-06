@@ -90,7 +90,7 @@ jobs:
           export DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/$MACHINE
           export DL_DIR=$GITHUB_WORKSPACE/build/downloads
           export SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache
-          TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/$distro
+          TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/$DISTRO
           rm -fr $BUILD_DIR $DEPLOY_DIR
           mkdir -p $BUILD_DIR $DEPLOY_DIR
           TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $BUILD_DIR
