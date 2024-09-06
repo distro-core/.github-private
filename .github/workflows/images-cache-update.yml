@@ -2,18 +2,47 @@ name: Scheduled Refresh Bitbake Downloads
 
 # An action to perform a initialization of build/downloads
 
+# Requires
+# runner to have a label = runner.name
+
 on:
   workflow_dispatch:
-
-env:
-  MANIFEST_URL: https://github.com/distro-core/distro-manifest.git
-  MANIFEST_BRANCH: main
-  MANIFEST_NAME: distro-head-scarthgap.xml
+    inputs:
+      DISTRO:
+        required: true
+        type: choice
+        options:
+          - distro-core
+          - distro-core-gui
+      MACHINE:
+        required: true
+        type: choice
+        options:
+          - com-cexpress-bt
+          - com-cexpress-sl
+          - sbc-gene-bt05
+          - sbc-raspberrypi5
+          - sbc-xavier-nx-devkit
+      MANIFEST_URL:
+        required: true
+        type: choice
+        options:
+          - https://github.com/distro-core/distro-manifest.git
+      MANIFEST_BRANCH:
+        required: true
+        type: choice
+        options:
+          - main
+      MANIFEST_NAME:
+        required: true
+        type: choice
+        options:
+          - distro-head-scarthgap.xml
 
 jobs:
 
-  # Requires runner to have a label = runner.name
-  get-runner:
+  assigned-runner:
+    name: Runner Selection ${{ github.repository }}
     if: ${{ always() }}
     runs-on: [ self-hosted, debian ]
     outputs:
@@ -22,16 +51,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
-      - run: echo "::notice::selected runner ${{ runner.name }}"
 
-  job-init:
-    needs: [ get-runner ]
-    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
+  job-execute:
+    name: Initialization
+    needs: [ assigned-runner ]
+    runs-on: ${{ needs.assigned-runner.outputs.RUNNER }}
     permissions:
       actions: write
     continue-on-error: false
     steps:
-      - shell: bash
+      - name: Initialize
+        shell: bash
         run: |
           echo "::add-mask::$HOME"
           echo "::add-mask::$GITHUB_WORKSPACE"
@@ -44,51 +74,25 @@ jobs:
           done
           echo "::debug::initialize git settings"
           [[ -n "$(command -v git)" ]] || (echo "::error::git not found"; exit 1)
-          git config --global user.name "Builder"
+          git config --global user.name "RPM Signing"
           git config --global user.email "release@internal"
           git config --global http.sslVerify true
           echo "::debug::initialize repo tool"
           curl --silent https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
           chmod a+rx $HOME/.local/bin/repo
-
-  job-repo:
-    needs: [ get-runner, job-init ]
-    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
-    permissions:
-      actions: write
-    continue-on-error: false
-    steps:
-      - shell: bash
+      - name: Repo Init & Sync
+        shell: bash
         run: |
           echo "::debug::repo init and sync"
           [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
           rm -fr .repo
-          printf "\n\ny\n" | repo init --manifest-url $MANIFEST_URL --manifest-branch $MANIFEST_BRANCH --manifest-name $MANIFEST_NAME --no-clone-bundle
+          printf "\n\ny\n" | repo init --manifest-url ${{ github.event.inputs.MANIFEST_URL }} --manifest-branch ${{ github.event.inputs.BRANCH }} --manifest-name ${{ github.event.inputs.MANIFEST_NAME }} --no-clone-bundle
           repo sync
-
-  job-bitbake:
-    needs: [ get-runner, job-repo ]
-    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
-    permissions:
-      actions: write
-    continue-on-error: false
-    strategy:
-      matrix:
-        DISTRO:
-          - distro-core
-          - distro-core-gui
-        MACHINE:
-          - com-cexpress-bt
-          - com-cexpress-sl
-          - sbc-gene-bt05
-          - sbc-raspberrypi5
-          - sbc-xavier-nx-devkit
-    steps:
-      - shell: bash
+      - name: Bitbake
+        shell: bash
         run: |
-          echo "::group::${{ matrix.DISTRO }} ${{ matrix.MACHINE }}"
-          export DISTRO=${{ matrix.DISTRO }}
-          export MACHINE=${{ matrix.MACHINE }}
+          export DISTRO=${{ github.event.inputs.DISTRO }}
+          export MACHINE=${{ github.event.inputs.MACHINE }}
           export BUILD_DIR=$GITHUB_WORKSPACE/build/$MACHINE
           export DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/$MACHINE
           export DL_DIR=$GITHUB_WORKSPACE/build/downloads
@@ -96,22 +100,16 @@ jobs:
           TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/$DISTRO
           rm -fr $BUILD_DIR $DEPLOY_DIR
           mkdir -p $BUILD_DIR $DEPLOY_DIR
+          {
           TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $BUILD_DIR
+          } >/dev/null
           bitbake --runall=fetch distro-image distro-sdk-image
           cd $GITHUB_WORKSPACE
           rm -fr $BUILD_DIR $DEPLOY_DIR
-          echo "::endgroup"
-
-  job-artifacts:
-    needs: [ get-runner, job-bitbake ]
-    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
-    permissions:
-      actions: write
-    continue-on-error: false
-    steps:
-      - uses: actions/upload-artifact@v4
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: build-downloads
+          name: downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}
           compression-level: 9
           if-no-files-found: error
           overwrite: true
@@ -122,22 +120,10 @@ jobs:
             !build/downloads/*.lock
             !build/downloads/tmp*
             !build/downloads/*tmp
-
-  job-sstate-cache:
-    needs: [ get-runner, job-artifacts ]
-    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
-    permissions:
-      actions: write
-    continue-on-error: false
-    steps:
-      - uses: actions/upload-artifact@v4
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
         with:
-          name: build-sstate-cache
-          compression-level: 9
-          if-no-files-found: error
-          overwrite: true
+          # repository: distro-core/distro-manifest
+          name: downloads-${{ github.event.inputs.DISTRO }}-${{ github.event.inputs.MACHINE }}
           path: |
-            build/sstate-cache/**/*
-            !build/sstate-cache/**/.lock
-            !build/sstate-cache/**/*tmp
-            !build/sstate-cache/**/tmp*
+            build/downloads/*
