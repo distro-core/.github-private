@@ -31,17 +31,18 @@ jobs:
       - shell: bash
         run: |
           echo "::add-mask::$HOME"
-          echo "::debug::local paths"
+          echo "::add-mask::$GITHUB_WORKSPACE"
+          echo "::debug::set local paths"
           for path in $HOME/.local/bin $GITHUB_WORKSPACE/.repo/repo; do
-            if [[ :$PATH: == *:"$path":* ]]; then
-              echo "::notice::PATH alredy contains $path"
-            else
+            if [[ ! :$PATH: == *:"$path":* ]]; then
               mkdir -p $path
               echo "PATH=$path:$PATH" >> $GITHUB_ENV
             fi
           done
-          echo "::debug::install git settings"
+          echo "::debug::initialize git settings"
           [[ -n "$(command -v git)" ]] || (echo "::error::git not found"; exit 1)
+          git config --global user.name "Builder"
+          git config --global user.email "release@internal"
           git config --global http.sslVerify true
 
   job-repo:
@@ -56,7 +57,7 @@ jobs:
           echo "::debug::repo init and sync"
           [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
           rm -fr .repo
-          repo init --manifest-url $MANIFEST_URL --manifest-branch $MANIFEST_BRANCH --manifest-name $MANIFEST_NAME --no-clone-bundle
+          printf "\n\ny\n" | repo init --manifest-url $MANIFEST_URL --manifest-branch $MANIFEST_BRANCH --manifest-name $MANIFEST_NAME --no-clone-bundle
           repo sync
 
   job-bitbake:
@@ -65,28 +66,35 @@ jobs:
     permissions:
       actions: write
     continue-on-error: false
+    strategy:
+      matrix:
+        DISTRO:
+          - distro-core
+          - distro-core-gui
+        MACHINE:
+          - com-cexpress-bt
+          - com-cexpress-sl
+          - sbc-gene-bt05
+          - sbc-raspberrypi5
+          - sbc-xavier-nx-devkit
     steps:
       - shell: bash
         run: |
-          for distro in distro-core distro-core-gui; do
-            for machine in com-cexpress-bt com-cexpress-sl sbc-gene-bt05 sbc-raspberrypi5 sbc-xavier-nx-devkit; do
-              export DISTRO=$distro
-              export MACHINE=$machine
-              export BUILD_DIR=$GITHUB_WORKSPACE/build/$MACHINE
-              export DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/$MACHINE
-              export DL_DIR=$GITHUB_WORKSPACE/build/downloads
-              export SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache
-              TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/$distro
-              rm -fr $BUILD_DIR $DEPLOY_DIR
-              mkdir -p $BUILD_DIR $DEPLOY_DIR
-              echo "::notice::oe-init-build-env $distro $machine"
-              TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $BUILD_DIR
-              bitbake --runall=fetch distro-image distro-sdk-image
-              cd $GITHUB_WORKSPACE
-              rm -fr $BUILD_DIR $DEPLOY_DIR
-            done
-          done
-          echo "::notice::complete"
+          echo "::group::${{ matrix.DISTRO }} ${{ matrix.MACHINE }}"
+          export DISTRO=${{ matrix.DISTRO }}
+          export MACHINE=${{ matrix.MACHINE }}
+          export BUILD_DIR=$GITHUB_WORKSPACE/build/$MACHINE
+          export DEPLOY_DIR=$GITHUB_WORKSPACE/artifacts/$MACHINE
+          export DL_DIR=$GITHUB_WORKSPACE/build/downloads
+          export SSTATE_CACHE=$GITHUB_WORKSPACE/build/sstate-cache
+          TEMPLATECONF=$GITHUB_WORKSPACE/layers/meta-distro/conf/templates/$distro
+          rm -fr $BUILD_DIR $DEPLOY_DIR
+          mkdir -p $BUILD_DIR $DEPLOY_DIR
+          TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $BUILD_DIR
+          bitbake --runall=fetch distro-image distro-sdk-image
+          cd $GITHUB_WORKSPACE
+          rm -fr $BUILD_DIR $DEPLOY_DIR
+          echo "::endgroup"
 
   job-artifacts:
     needs: [ get-runner, job-bitbake ]
@@ -108,3 +116,22 @@ jobs:
             !build/downloads/*.lock
             !build/downloads/tmp*
             !build/downloads/*tmp
+
+  job-sstate-cache:
+    needs: [ get-runner, job-artifacts ]
+    runs-on: ${{ needs.get-runner.outputs.RUNNER }}
+    permissions:
+      actions: write
+    continue-on-error: false
+    steps:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-sstate-cache
+          compression-level: 9
+          if-no-files-found: error
+          overwrite: true
+          path: |
+            build/sstate-cache/**/*
+            !build/sstate-cache/**/.lock
+            !build/sstate-cache/**/*tmp
+            !build/sstate-cache/**/tmp*
