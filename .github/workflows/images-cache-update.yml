@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 env:
-  MANIFEST_URL=https://github.com/distro-core/distro-manifest.git
-  MANIFEST_BRANCH=main
-  MANIFEST_NAME=distro-head-scarthgap.xml
+  MANIFEST_URL: https://github.com/distro-core/distro-manifest.git
+  MANIFEST_BRANCH: main
+  MANIFEST_NAME: distro-head-scarthgap.xml
 
 jobs:
 
