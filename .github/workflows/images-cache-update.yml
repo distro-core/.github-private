@@ -47,6 +47,9 @@ jobs:
           git config --global user.name "Builder"
           git config --global user.email "release@internal"
           git config --global http.sslVerify true
+          echo "::debug::initialize repo tool"
+          curl --silent https://storage.googleapis.com/git-repo-downloads/repo > $HOME/.local/bin/repo
+          chmod a+rx $HOME/.local/bin/repo
 
   job-repo:
     needs: [ get-runner, job-init ]
