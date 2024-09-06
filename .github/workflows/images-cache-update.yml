@@ -11,12 +11,14 @@ on:
       DISTRO:
         required: true
         type: choice
+        default: distro-core
         options:
           - distro-core
           - distro-core-gui
       MACHINE:
         required: true
         type: choice
+        default: sbc-gene-bt05
         options:
           - com-cexpress-bt
           - com-cexpress-sl
@@ -26,23 +28,27 @@ on:
       MANIFEST_URL:
         required: true
         type: choice
+        default: https://github.com/distro-core/distro-manifest.git
         options:
           - https://github.com/distro-core/distro-manifest.git
       MANIFEST_BRANCH:
         required: true
         type: choice
+        default: main
         options:
           - main
       MANIFEST_NAME:
         required: true
         type: choice
+        default: distro-head-scarthgap.xml
         options:
+          - distro-head-kirkstone.xml
           - distro-head-scarthgap.xml
 
 jobs:
 
   assigned-runner:
-    name: Runner Selection ${{ github.repository }}
+    name: Labeled Runner Selection
     if: ${{ always() }}
     runs-on: [ self-hosted, debian ]
     outputs:
@@ -103,7 +109,8 @@ jobs:
           {
           TEMPLATECONF=$TEMPLATECONF . $GITHUB_WORKSPACE/layers/poky/oe-init-build-env $BUILD_DIR
           } >/dev/null
-          bitbake --runall=fetch distro-image distro-sdk-image
+          bitbake distro-image distro-sdk-image --runall=fetch
+          # bitbake distro-image distro-sdk-image
           cd $GITHUB_WORKSPACE
           rm -fr $BUILD_DIR $DEPLOY_DIR
       - name: Upload Artifact
