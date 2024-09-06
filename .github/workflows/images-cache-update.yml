@@ -19,6 +19,9 @@ jobs:
     outputs:
       RUNNER: ${{ runner.name }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
       - run: echo "::notice::selected runner ${{ runner.name }}"
 
   job-init:
