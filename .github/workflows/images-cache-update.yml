@@ -53,6 +53,7 @@ jobs:
           echo "MANIFEST_NAME=distro-head-scarthgap.xml" >>$GITHUB_ENV
           echo "::debug::repo init and sync"
           [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
+          rm -fr .repo
           repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
           repo sync
 
