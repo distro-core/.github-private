@@ -5,6 +5,11 @@ name: Scheduled Refresh Bitbake Downloads
 on:
   workflow_dispatch:
 
+env:
+  MANIFEST_URL=https://github.com/distro-core/distro-manifest.git
+  MANIFEST_BRANCH=main
+  MANIFEST_NAME=distro-head-scarthgap.xml
+
 jobs:
 
   # Requires runner to have a label = runner.name
@@ -25,20 +30,21 @@ jobs:
     steps:
       - shell: bash
         run: |
-          echo "::debug::local path"
           echo "::add-mask::$HOME"
-          if [[ :$PATH: == *:"$HOME/.local/bin":* ]]; then
-            echo "::notice::PATH alredy contains $HOME/.local/bin"
-          else
-            localbin=$HOME/.local/bin
-            mkdir -p $localbin
-            echo "PATH=$localbin:$PATH" >> $GITHUB_ENV
-          fi
+          echo "::debug::local paths"
+          for path in $HOME/.local/bin $GITHUB_WORKSPACE/.repo/repo; do
+            if [[ :$PATH: == *:"$path":* ]]; then
+              echo "::notice::PATH alredy contains $path"
+            else
+              mkdir -p $path
+              echo "PATH=$path:$PATH" >> $GITHUB_ENV
+            fi
+          done
           echo "::debug::install git settings"
           [[ -n "$(command -v git)" ]] || (echo "::error::git not found"; exit 1)
           git config --global http.sslVerify true
 
-  job-sync:
+  job-repo:
     needs: [ get-runner, job-init ]
     runs-on: ${{ needs.get-runner.outputs.RUNNER }}
     permissions:
@@ -47,18 +53,14 @@ jobs:
     steps:
       - shell: bash
         run: |
-          echo "::debug::environment"
-          echo "MANIFEST_URL=https://github.com/distro-core/distro-manifest.git" >>$GITHUB_ENV
-          echo "MANIFEST_BRANCH=main" >>$GITHUB_ENV
-          echo "MANIFEST_NAME=distro-head-scarthgap.xml" >>$GITHUB_ENV
           echo "::debug::repo init and sync"
           [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
           rm -fr .repo
-          repo init --manifest-url=$MANIFEST_URL --manifest-branch=$MANIFEST_BRANCH --manifest-name=$MANIFEST_NAME --no-clone-bundle
+          repo init --manifest-url $MANIFEST_URL --manifest-branch $MANIFEST_BRANCH --manifest-name $MANIFEST_NAME --no-clone-bundle
           repo sync
 
   job-bitbake:
-    needs: [ get-runner, job-sync ]
+    needs: [ get-runner, job-repo ]
     runs-on: ${{ needs.get-runner.outputs.RUNNER }}
     permissions:
       actions: write
@@ -93,7 +95,7 @@ jobs:
       actions: write
     continue-on-error: false
     steps:
-      - uses: actions/artifacts-upload@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: build-downloads
           compression-level: 9
