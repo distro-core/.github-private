@@ -1,6 +1,7 @@
-name: Scheduled Refresh Bitbake Downloads
+name: Generate Bitbake Artifacts (Self Hosted)
 
-# An action to perform a initialization of build/downloads
+# An action to perform a manual bitbake build process for
+# the selected parameters found in workflow_dispatch
 
 # Requires
 # runner to have a label = runner.name
@@ -50,7 +51,7 @@ jobs:
   assigned-runner:
     name: Labeled Runner Selection
     if: ${{ always() }}
-    runs-on: [ self-hosted, debian ]
+    runs-on: [ self-hosted, almalinux ]
     outputs:
       RUNNER: ${{ runner.name }}
     steps:
@@ -59,7 +60,7 @@ jobs:
           repository: ${{ github.repository }}
 
   job-execute:
-    name: Initialization
+    name: Job Execute
     needs: [ assigned-runner ]
     runs-on: ${{ needs.assigned-runner.outputs.RUNNER }}
     permissions:
@@ -92,7 +93,7 @@ jobs:
           echo "::debug::repo init and sync"
           [[ -n "$(command -v repo)" ]] || (echo "::error::repo not found"; exit 1)
           rm -fr .repo
-          printf "\n\ny\n" | repo init --manifest-url ${{ github.event.inputs.MANIFEST_URL }} --manifest-branch ${{ github.event.inputs.BRANCH }} --manifest-name ${{ github.event.inputs.MANIFEST_NAME }} --no-clone-bundle
+          printf "\n\ny\n" | repo init --manifest-url ${{ github.event.inputs.MANIFEST_URL }} --manifest-branch ${{ github.event.inputs.MANIFEST_BRANCH }} --manifest-name ${{ github.event.inputs.MANIFEST_NAME }} --no-clone-bundle
           repo sync
       - name: Bitbake
         shell: bash
